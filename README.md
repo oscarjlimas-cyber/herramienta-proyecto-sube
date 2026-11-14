@@ -7,13 +7,13 @@ Página web para diseñar y estudiar subestaciones de alta tensión. Sirve para 
 ## Módulos
 
 1. **Coordinación de aislamiento** (IEC 60071, IEC 60815): selección del BIL con el pararrayos, en rango I y rango II, y cadena de aisladores por contaminación. Pararrayos de catálogo (Siemens Energy, ABB / Hitachi Energy, GE Vernova) o personalizados.
-2. **Conductores y barrajes** (IEEE 738, Peek, IEC 60865-1): capacidad de corriente, efecto corona, cortocircuito térmico y fuerzas, flecha del vano y tubo rígido.
-3. **Distancias eléctricas** (método del curso, RETIE vigente, IEC 60071-2): distancias mínimas, de seguridad y de diseño, con corte de la bahía a escala.
-4. **Malla de puesta a tierra** (IEEE Std 80-2013): tensiones de toque y de paso, cálculo del factor de reparto Sf con los cables de guarda y tabla de sensibilidad de los supuestos.
-5. **Apantallamiento** (IEEE Std 998): corriente crítica, distancia de descarga y zona protegida por los cables de guarda.
-6. **Configuraciones**: comparación de siete esquemas de barras (barra sencilla, principal + transferencia, doble barra, doble barra + transferencia, anillo, interruptor y medio, doble interruptor).
-7. **Simulador 3D**: maniobras con enclavamientos, unifilar con flujo de carga y patio en 3D (modelado para el caso base).
-8. **Validación**: el mismo motor resuelve ejemplos publicados (IEEE 80 Anexo B, IEEE 738, apuntes del curso, entregas 1 y 2) y muestra la diferencia.
+2. **Distancias eléctricas** (método del curso, RETIE vigente, IEC 60071-2): distancias mínimas, de seguridad y de diseño, con corte de la bahía a escala.
+3. **Malla de puesta a tierra** (IEEE Std 80-2013): tensiones de toque y de paso, cálculo del factor de reparto Sf con los cables de guarda y tabla de sensibilidad de los supuestos.
+4. **Apantallamiento** (IEEE Std 998): corriente crítica, distancia de descarga y zona protegida por los cables de guarda.
+5. **Configuraciones**: comparación de siete esquemas de barras (barra sencilla, principal + transferencia, doble barra, doble barra + transferencia, anillo, interruptor y medio, doble interruptor).
+6. **Simulador 3D**: maniobras con enclavamientos, unifilar con flujo de carga y patio en 3D (modelado para el caso base).
+
+El módulo de **conductores y barrajes** (IEEE 738, Peek, IEC 60865-1) ya está programado pero oculto: se activa cuando el Grupo 3 haga su entrega (`MOD_CON` en `modulos.js` y su pestaña en `index.html`). La malla y el apantallamiento del caso base son provisionales y se ajustarán con las entregas de los grupos 3 y 4.
 
 Cada módulo muestra la memoria de cálculo paso a paso. En el resumen se puede crear un proyecto nuevo, guardarlo en un archivo `.json` y volver a abrirlo.
 
@@ -22,7 +22,7 @@ Cada módulo muestra la memoria de cálculo paso a paso. En el resumen se puede 
 | Archivo | Qué es |
 |---|---|
 | `index.html` | La herramienta: resumen, aislamiento, distancias, malla y normas |
-| `modulos.js` | Proyecto, conductores, apantallamiento, configuraciones, validación y resumen |
+| `modulos.js` | Proyecto, apantallamiento, configuraciones y resumen (y conductores, oculto) |
 | `calculos.js` | Motor de cálculo que comparten las dos páginas |
 | `catalogos.js` | Datos de catálogo: pararrayos, aisladores y conductores, con sus fuentes |
 | `simulador.html` | Simulador de maniobras y patio 3D |
@@ -50,10 +50,10 @@ Subestaciones Eléctricas 2026-2 · Docente: E.E. MSc. Javier Andrés Ruiz Garz�
 
 | Grupo 1 | Grupo 2 | Grupo 3 | Grupo 4 |
 |---|---|---|---|
-| Julian Rubiano | Juan Guillermo Nuñez | <u>Camilo Andrés Palomar</u> | Ingrid Quiroga |
-| <u>Óscar Julián Limas</u> | Diego Andres Cely | Daniel Andrés Chávez | Andres Coa |
+| Julian Rubiano | Juan Guillermo Nuñez | Camilo Andrés Palomar | Ingrid Quiroga |
+| Óscar Julián Limas | Diego Andres Cely | Daniel Andrés Chávez | Andres Coa |
 | Danna Guerrero | Juan Diego García | María Fernanda Chala | Yuli Leon |
 | Michael Duarte | Stiven Montaño | Marlon Nivia | |
-| <u>Ángel Daniel Cepeda</u> | David Durán | <u>Santiago Alfonso Tinoco</u> | |
+| Ángel Daniel Cepeda | David Durán | Santiago Alfonso Tinoco | |
 
-Autores de la herramienta (subrayados): Ángel Daniel Cepeda (aislamiento), Óscar Julián Limas (distancias), Camilo Andrés Palomar (malla de puesta a tierra) y Santiago Alfonso Tinoco (simulador 3D e integración).
+Autores de la herramienta: Ángel Daniel Cepeda (aislamiento), Óscar Julián Limas (distancias), Camilo Andrés Palomar (malla de puesta a tierra) y Santiago Alfonso Tinoco (simulador 3D e integración).

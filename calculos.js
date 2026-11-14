@@ -12,7 +12,7 @@ const f2=x=>Number(x).toFixed(2).replace(".",",");
    Datos del proyecto (valores iniciales = entregas G1/G2 + ETAP)
    ============================================================ */
 const DEF={
-  proy:{nombre:"S/E Termales",un:115,tens:"230 / 115 / 13,8 kV",trafo:"2 bancos 3 × 45 MVA",lugar:"Santa Rosa de Cabal",cfg:"dbt",nLin:3,nTr:2,nRes:1,icc3:30,base:true},
+  proy:{nombre:"S/E Termales",un:115,tens:"230 / 115 / 13,8 kV",trafo:"2 bancos 3 × 45 MVA",lugar:"Santa Rosa de Cabal",cfg:"bpt",nLin:3,nTr:2,nRes:1,icc3:30,base:true},
   g:{um:123,alt:1800,t:18},
   ais:{dist:20,mp:25,ko:0.8,kt:1.15,ke:1.4,S:1000,dpsCat:"sie-3EL2-3",dpsUr:96,npmI:0,ur:96,npr:226,npm:180,pol:"d",kd:1.1,ins:"3FL-074",extra:0,cN:"Aislador personalizado",cTipo:"pol",cFuga:3500,cLon:1400,cLiwv:750,cSml:120},
   con:{cond:"Drake",nsub:3,sep:40,d:28.1,w:1.627,rts:14292,r20:0.07,aAl:402.8,kac:1.02,Idis:2000,Ta:26,Tc:75,vv:0.61,eps:0.5,abs:0.5,Qs:1000,m:0.85,link:true,a:2.11,Ik:31.5,kip:2.6,tk:1,te:200,T:150,L:22,tubD:100,tubT:5,tubRp:160,tubB:0.73,tubL:9},

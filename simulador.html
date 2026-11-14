@@ -303,7 +303,7 @@ const G1DPS={ref:'Siemens 3EL2 096-2PJ3',ur:96,uc:77,inom:10,clase:'Clase 3 de d
 const G1LN=['Pereira','Dosquebradas','Santa Rosa–Chinchiná'];
 function projDPS(b){Object.assign(b.data.dps,G1DPS);return b;}
 function defaults(){
-  return {v:3,cv:2,config:'dbt',
+  return {v:3,cv:3,config:'bpt',
     sub:{nombre:'S/E Termales',un:115,um:123,icc:31.5,f:60,inb:2000,bcond:BUSC,ke:1.4,res:1},
     busvt:{rel:'115000/√3 : 115/√3 V',clase:'0,2 / 3P',tipo:'Inductivo'},
     bays:[makeBay('L1','linea',G1LN[0]),makeBay('L2','linea',G1LN[1]),makeBay('L3','linea',G1LN[2]),projTR(makeBay('T1','trafo')),projTR(makeBay('T2','trafo'))].map(projDPS),
@@ -317,8 +317,8 @@ let state=defaults();
 let needNormal=false, oldCv=1;
 try{const s=JSON.parse(localStorage.getItem(KEY)||'null'); if(s&&s.bays&&CONFIGS[s.config]){state=Object.assign(defaults(),s);oldCv=s.cv;}}catch(e){}
 if(state.v!==3){state=defaults();needNormal=true;}
-if(oldCv!==2){state.cv=2;state.config='dbt';needNormal=true;}
-/* caso base: «barraje doble principal y transferencia» = doble barra (BP1, BP2) + transferencia (BT), como en la Entrega 1 (acople 2000 A, transferencia 1250 A).
+if(oldCv!==3){state.cv=3;state.config='bpt';state.pcfg=null;needNormal=true;}
+/* caso base: «barraje doble principal y transferencia» = dos barras, la principal y la de transferencia, sin barra de reserva.
    La configuración se elige en la herramienta (Datos del proyecto) y aquí se sigue; también puede cambiarse en el selector de arriba. */
 if(!(state.dv>=3)){state.dv=3;Object.assign(state.sub,{nombre:'S/E Termales',um:123,icc:31.5,inb:2000,ke:1.4});
   state.bays.forEach(b=>{const d=b.data;Object.assign(d.cb,{un:123,in:1250,icc:31.5});Object.assign(d.ds,{un:123,in:1250,ik:31.5});d.ct.ith=31.5;Object.assign(d.dps,G1DPS);

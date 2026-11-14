@@ -6,13 +6,14 @@
    Usa las utilidades y el estado S definidos en index.html.
    ============================================================ */
 let RC,RP;
+const MOD_CON=false; /* módulo de conductores: se activa (true) cuando el Grupo 3 entregue; también hay que volver a poner su pestaña en index.html */
 const txt=(mod,k,label,opt={})=>({mod,k,label,type:"txt",...opt});
 const clone=o=>JSON.parse(JSON.stringify(o));
 const pill=(c,t)=>`<span class="pill ${c}">${t}</span>`;
 const okp=(b,t1="Cumple",t0="No cumple")=>pill(b?"ok":"no",b?t1:t0);
 const nCirc=()=>Math.max(1,Math.round((+S.proy.nLin||0)+(+S.proy.nTr||0)));
 const nRes=()=>Math.max(0,Math.round(+S.proy.nRes||0));
-const cfgOf=()=>CFG[S.proy.cfg]||CFG.dbt;
+const cfgOf=()=>CFG[S.proy.cfg]||CFG.bpt;
 const EXTRA={bpt:"transferencia",db:"acople",dbt:"acople y transferencia"};
 
 /* ---------- Formularios de los módulos nuevos ---------- */
@@ -76,6 +77,7 @@ $("fileOpen").addEventListener("change",e=>{const f=e.target.files[0];if(!f)retu
    ============================================================ */
 function renderCon(){
   const g=S.g,p=S.con,rig=S.dis.barra==="rig",o=RC=calcCon(g,p,{Sf:RD?RD.SfA:0,rig});
+  if(!MOD_CON)return;
   const fails=[];if(!o.okAmp)fails.push("no lleva la corriente de diseño");if(!o.okCor)fails.push("hay efecto corona");if(!o.okTh)fails.push("no aguanta térmicamente el cortocircuito");if(rig?!o.okTub:!o.okT)fails.push(rig?"el tubo se pasa de esfuerzo en cortocircuito":"la tensión de tendido supera el 25 % de la rotura");
   const nom=`${o.n>1?o.n+" × ":""}${o.nombre.replace(/ · \d+\/\d+$/,"")}${o.n>1?" por fase":""}`;
   $("vCon").innerHTML=o.ok?verdict("ok",`${nom}: cumple`,`Lleva ${fm(o.Icap,0)} A a ${fm(p.Tc,0)} °C (se piden ${fm(p.Idis,0)} A), no hay corona y aguanta ${fm(o.Ith,1)} kA durante ${fm(p.tk,1)} s.`)
@@ -170,7 +172,7 @@ function renderMalExtra(o,p){
 function renderApa(){
   const g=S.g,p=S.apa;
   if(p.link){if(RA&&RA.BIL)p.BIL=RA.BIL;if(RD)p.hBus=RD.flex?RD.amarreA:RD.hbA;p.Lx=S.mal.Lx;p.Ly=S.mal.Ly}
-  const o=RP=calcApa(g,p,{req:RC?RC.req:1.4});
+  const o=RP=calcApa(g,p,{req:RC?(MOD_CON?RC.req:RC.d/20):1.4});
   $("vApa").innerHTML=o.ok?verdict("ok","Las barras quedan protegidas",`Los cables de guarda a ${fm(p.hG,1)} m interceptan los rayos de ${fm(o.Is,1)} kA o más. Entre dos cables separados ${fm(p.X,1)} m la zona protegida llega hasta ${fm(o.hMid,2)} m de altura, y las barras están a ${fm(p.hBus,2)} m.`)
     :verdict("no","Las barras no quedan protegidas",o.dh<=0?"Los cables de guarda deben ir más altos que las barras.":`Con cables de guarda a ${fm(p.hG,1)} m y separados ${fm(p.X,1)} m, la zona protegida solo llega a ${Number.isFinite(o.hMid)?fm(o.hMid,2):"0"} m y las barras están a ${fm(p.hBus,2)} m. Suba los cables de guarda a ${Number.isFinite(o.hGmin)?fm(Math.ceil(o.hGmin*2)/2,1):"—"} m o acérquelos a ${fm(Math.floor(o.Xmax*2)/2,1)} m.`);
   $("kApa").innerHTML=kpi("Impedancia característica Zs",fm(o.Zs,0),"Ω",p.zsMode==="man"?"valor manual":`radio de corona ${fm(o.Rc*100,1)} cm`)+kpi("Corriente crítica del rayo",fm(o.Is,2),"kA",`BIL ${fm(p.BIL,0)} kV`,"hl")+kpi("Distancia de descarga S",fm(o.S,1),"m","radio de la esfera rodante","hl")+
@@ -270,9 +272,9 @@ function cfgSVG(k){
   return `<svg viewBox="0 0 300 200" width="100%" role="img" aria-label="Esquema unifilar de ${CFG[k].n}">${g}</svg>`;
 }
 function renderCfg(){
-  const p=S.proy,n=nCirc()+nRes(),cur=CFG[p.cfg]?p.cfg:"dbt";
+  const p=S.proy,n=nCirc()+nRes(),cur=CFG[p.cfg]?p.cfg:"bpt";
   $("cfgN").textContent=`para ${n} circuitos (${nCirc()} equipados${nRes()?` y ${nRes()} de reserva`:""})`;
-  $("vCfg").innerHTML=`<div class="note"><b>Configuración del proyecto: ${CFG[cur].n}.</b> ${CFG[cur].int(n)} interruptores y ${CFG[cur].sec(n)} seccionadores con los ${n} circuitos equipados. ${CFGX[cur].uso}${p.base?` El enunciado del caso base pide «barraje doble principal y transferencia»; aquí se toma como dos barras principales (BP1 y BP2) más una de transferencia (BT), igual que en la Entrega 1.`:""}${CFG[cur].sim?"":" El simulador 3D todavía no dibuja esta configuración y sigue mostrando la última compatible."}</div>`;
+  $("vCfg").innerHTML=`<div class="note"><b>Configuración del proyecto: ${CFG[cur].n}.</b> ${CFG[cur].int(n)} interruptores y ${CFG[cur].sec(n)} seccionadores con los ${n} circuitos equipados. ${CFGX[cur].uso}${p.base?` Es la configuración del enunciado del caso base: una barra principal y una de transferencia.`:""}${CFG[cur].sim?"":" El simulador 3D todavía no dibuja esta configuración y sigue mostrando la última compatible."}</div>`;
   $("tCfg").innerHTML=`<tr><th class="l">Configuración</th><th>Interruptores</th><th>Seccionadores</th><th>Confiabilidad</th><th>Flexibilidad</th><th>Costo</th><th class="l">Si falla una barra</th><th class="l">Si se saca un interruptor a mantenimiento</th></tr>`+
     Object.entries(CFG).map(([k,c])=>`<tr class="${k===cur?"sel":""}"><td class="l"><b>${c.n}</b>${k===cur?" "+pill("ok","Proyecto"):""}</td><td>${c.int(n)}</td><td>${c.sec(n)}</td><td>${dots(CFGX[k].c)}</td><td>${dots(CFGX[k].f)}</td><td>${dots(CFGX[k].k)}</td><td class="l" style="min-width:190px">${CFGX[k].barra}</td><td class="l" style="min-width:190px">${CFGX[k].intr}</td></tr>`).join("");
   $("cfgCards").innerHTML=Object.entries(CFG).map(([k,c])=>`<div class="card cfgc ${k===cur?"on":""}"><h3>${c.n}</h3>${cfgSVG(k)}<p>${CFGX[k].uso}</p><div class="cfgf"><span class="mut">${c.sim?"Disponible en el simulador":"Solo comparación"}</span>${k===cur?pill("ok","Configuración del proyecto"):`<button class="btn" type="button" data-cfg="${k}">Usar en el proyecto</button>`}</div></div>`).join("");
@@ -310,16 +312,17 @@ const ENT={"Aislamiento":"Entrega 1 · Grupo 1","Distancias":"Entrega 2 · Grupo
 function renderResumen(){
   const a=RA,d=RD,m=RM,c=RC,ap=RP,p=S.proy,base=!!p.base,cf=cfgOf(),n=nCirc(),dNo=d.checks.some(x=>!x.ok&&x.lvl==="no"),dWa=d.checks.some(x=>!x.ok&&x.lvl==="wa");
   const card=(tab,k,title,big,unit,t,stc,stt)=>`<button class="fstep" type="button" data-go="${tab}"><span class="top"><span class="k">${k}</span><span class="pill ${stc}">${stt}</span></span><h4>${title}</h4><span class="big">${big}<small> ${unit}</small></span><p>${t}</p><span class="go">Ver cálculo →</span></button>`;
+  let nk=0;const K=t=>`${++nk} · ${t}`;
   $("flow").innerHTML=
-    card("aislamiento","1 · Aislamiento","Nivel de aislamiento",a.BIL??"—","kV BIL",`Pararrayos Ur ${fm(a.ur,0)} kV protege hasta ${a.sel?fm(a.sel.dmax,1):"—"} m. Fuga exigida ${fm(a.Lreq,0)} mm.`,!a.sel?"no":a.ok?"ok":"wa",!a.sel?"No cumple":a.ok?"Cumple":"Revisar cadena")+
-    card("conductores","2 · Conductores","Capacidad de las barras",fm(c.Icap,0),"A",`${c.n>1?c.n+" × ":""}${c.nombre.replace(/ · \d+\/\d+$/,"").replace("ACSR ","")} por fase. Gradiente ${fm(c.Emax,1)} de ${fm(c.E0,1)} kV/cm. Aguanta ${fm(c.Ith,0)} kA.`,c.ok?"ok":"no",c.ok?"Cumple":"No cumple")+
-    card("distancias","3 · Distancias","Separación entre fases",fm(d.SfA),"m",`Fase–tierra ${fm(d.dftA)} m · equipos a ${fm(d.heqA)} m · barras ${d.flex?"amarradas":"montadas"} a ${fm(d.flex?d.amarreA:d.hbA)} m.`,dNo?"no":dWa?"wa":"ok",dNo?"No cumple":dWa?"Revisar":"Cumple")+
-    card("malla","4 · Malla de tierra","Tensión de toque",fm(m.Em,0),"V",`Tolerable ${fm(m.Etouch,0)} V · Rg ${fm(m.Rg,2)} Ω · entra al suelo el ${fm(100*m.SfUse,0)} % de ${fm(S.mal.If,1)} kA.`,m.ok?"ok":"no",m.ok?"Cumple":"No cumple")+
-    card("apantallamiento","5 · Apantallamiento","Distancia de descarga",fm(ap.S,1),"m",`Rayo crítico ${fm(ap.Is,1)} kA. Cables de guarda a ${fm(S.apa.hG,1)} m protegen hasta ${Number.isFinite(ap.hMid)?fm(ap.hMid,1):"0"} m en el centro.`,ap.ok?"ok":"no",ap.ok?"Cumple":"No cumple")+
-    card("configuraciones","6 · Configuración",cf.n,n+cf.extra,"campos",`${cf.int(n)} interruptores y ${cf.sec(n)} seccionadores equipados. Maniobras, enclavamientos y patio 3D en el simulador.`,"ok","Ver");
+    card("aislamiento",K("Aislamiento"),"Nivel de aislamiento",a.BIL??"—","kV BIL",`Pararrayos Ur ${fm(a.ur,0)} kV protege hasta ${a.sel?fm(a.sel.dmax,1):"—"} m. Fuga exigida ${fm(a.Lreq,0)} mm.`,!a.sel?"no":a.ok?"ok":"wa",!a.sel?"No cumple":a.ok?"Cumple":"Revisar cadena")+
+    (MOD_CON?card("conductores",K("Conductores"),"Capacidad de las barras",fm(c.Icap,0),"A",`${c.n>1?c.n+" × ":""}${c.nombre.replace(/ · \d+\/\d+$/,"").replace("ACSR ","")} por fase. Gradiente ${fm(c.Emax,1)} de ${fm(c.E0,1)} kV/cm. Aguanta ${fm(c.Ith,0)} kA.`,c.ok?"ok":"no",c.ok?"Cumple":"No cumple"):"")+
+    card("distancias",K("Distancias"),"Separación entre fases",fm(d.SfA),"m",`Fase–tierra ${fm(d.dftA)} m · equipos a ${fm(d.heqA)} m · barras ${d.flex?"amarradas":"montadas"} a ${fm(d.flex?d.amarreA:d.hbA)} m.`,dNo?"no":dWa?"wa":"ok",dNo?"No cumple":dWa?"Revisar":"Cumple")+
+    card("malla",K("Malla de tierra"),"Tensión de toque",fm(m.Em,0),"V",`Tolerable ${fm(m.Etouch,0)} V · Rg ${fm(m.Rg,2)} Ω · entra al suelo el ${fm(100*m.SfUse,0)} % de ${fm(S.mal.If,1)} kA.`,m.ok?"ok":"no",m.ok?"Cumple":"No cumple")+
+    card("apantallamiento",K("Apantallamiento"),"Distancia de descarga",fm(ap.S,1),"m",`Rayo crítico ${fm(ap.Is,1)} kA. Cables de guarda a ${fm(S.apa.hG,1)} m protegen hasta ${Number.isFinite(ap.hMid)?fm(ap.hMid,1):"0"} m en el centro.`,ap.ok?"ok":"no",ap.ok?"Cumple":"No cumple")+
+    card("configuraciones",K("Configuración"),cf.n,n+cf.extra,"campos",`${cf.int(n)} interruptores y ${cf.sec(n)} seccionadores equipados. Maniobras, enclavamientos y patio 3D en el simulador.`,"ok","Ver");
   $("cmpTitle").innerHTML=base?"Resultados y comparación con las entregas <small>caso base S/E Termales</small>":"Resultados principales";
   $("tCmp").innerHTML=`<tr><th class="l">Valor</th><th>Herramienta</th>${base?"<th>Entrega</th><th></th>":""}</tr>`+
-    RES.map((r,i)=>{const v=r[3](),has=base&&r[5]!=null,same=has&&v!=null&&Math.abs(v-r[5])<=0.5*Math.pow(10,-r[4])+1e-9;
+    RES.filter(r=>MOD_CON||r[0]!=="Conductores").map((r,i,RES)=>{const v=r[3](),has=base&&r[5]!=null,same=has&&v!=null&&Math.abs(v-r[5])<=0.5*Math.pow(10,-r[4])+1e-9;
       const head=i===0||RES[i-1][0]!==r[0]?`<tr class="grp"><td colspan="${base?4:2}">${r[0]}${base?` · ${ENT[r[0]]||"sin entrega todavía"}`:""}</td></tr>`:"";
       return head+`<tr><td class="l">${r[1]}</td><td><b>${v==null||!Number.isFinite(+v)?"—":fm(v,r[4])}</b> ${r[2]}</td>${base?`<td>${has?fm(r[5],r[4])+" "+r[2]:"—"}</td><td>${has?(same?pill("ok","✔"):pill("wa","Difiere")):""}</td>`:""}</tr>`}).join("");
   $("cmpNote").textContent=base?"«Entrega» son los valores oficiales de los grupos 1 y 2. Si cambia un dato y deja de coincidir, aparece «Difiere».":"Cada valor se explica paso a paso en la memoria de cálculo de su módulo.";
@@ -328,14 +331,13 @@ function renderResumen(){
   else if(a.ok)al.push(["ok",`Aislamiento: BIL ${a.BIL} kV con ${esc(a.dpsN)}. Cadena ${esc(a.A.n)}: ${fm(a.fugaTot,0)} mm de fuga frente a ${fm(a.Lreq,0)} mm exigidos.`]);
   else if(!a.okFuga)al.push(["wa",`Aislamiento: el ${esc(a.A.n)} tiene ${fm(a.fugaTot,0)} mm de fuga y se exigen ${fm(a.Lreq,0)} mm (kd ${fm(S.ais.kd,1)}). Elija un aislador con más fuga.`]);
   else al.push(["wa","Aislamiento: revise el pararrayos o el aislador en el módulo."]);
-  al.push(c.ok?["ok",`Conductores: ${fm(c.Icap,0)} A por fase frente a ${fm(S.con.Idis,0)} A de diseño, sin corona y con ${fm(c.Ith,0)} kA admisibles en cortocircuito.`]:["no","Conductores: el conductor de las barras no cumple alguno de los criterios (corriente, corona o cortocircuito)."]);
+  if(MOD_CON)al.push(c.ok?["ok",`Conductores: ${fm(c.Icap,0)} A por fase frente a ${fm(S.con.Idis,0)} A de diseño, sin corona y con ${fm(c.Ith,0)} kA admisibles en cortocircuito.`]:["no","Conductores: el conductor de las barras no cumple alguno de los criterios (corriente, corona o cortocircuito)."]);
   d.checks.filter(x=>!x.ok&&x.lvl!=="info").forEach(x=>al.push([x.lvl==="no"?"no":"wa",`Distancias: ${x.txt.toLowerCase()} (${x.cmp}).`]));
   if(!m.ok)al.push(["no","Malla de tierra: el diseño todavía no cumple con los datos actuales."]);
   else al.push(["wa",`Malla de tierra: cumple toque (${fm(m.Em,0)} V ≤ ${fm(m.Etouch,0)} V) y paso. Depende de supuestos por confirmar: Sf ${fm(m.SfUse,2)}${m.sf.N?` (calculado: ${fm(m.sf.Sf,2)})`:""}, grava, electrodos y resistividad medida. Vea la tabla de sensibilidad del módulo.`]);
   al.push(ap.ok?["ok",`Apantallamiento: cables de guarda a ${fm(S.apa.hG,1)} m cubren las barras a ${fm(S.apa.hBus,2)} m (esfera de ${fm(ap.S,1)} m).`]:["no","Apantallamiento: las barras no quedan dentro de la zona protegida."]);
   const icc=Math.max(+p.icc3||0,S.mal.If),okI=icc<=S.con.Ik;
   al.push([okI?"ok":"no",`Cortocircuito en barras: 3F ${fm(+p.icc3,2)} kA y 1F ${fm(S.mal.If,2)} kA frente a ${fm(S.con.Ik,1)} kA de los equipos${base&&okI?" (ETAP: pico de 79,6 kA frente a 82 kA; cumple con poco margen en el pico)":""}.`]);
-  if(base)al.push(["wa","Configuración: «barraje doble principal y transferencia» se modela como doble barra + transferencia (BP1, BP2 y BT), como en la Entrega 1. Si el profesor indica otra lectura, se cambia en «Datos del proyecto»."]);
-  if(base)al.push(["wa","Apantallamiento: la densidad de descargas (2 rayos/km²·año) y la altura de los cables de guarda son provisionales hasta que el Grupo 4 entregue su diseño."]);
+  if(base)al.push(["wa","Malla de tierra y apantallamiento son provisionales: se ajustarán con las entregas de los grupos 3 y 4 (conductores, malla definitiva, alturas de cables de guarda y densidad de descargas)."]);
   $("alerts").innerHTML=al.map(([k,t])=>`<div class="note ${k==="ok"?"":"wa"}"><span class="pill ${k}">${k==="ok"?"OK":k==="wa"?"Revisar":"Pendiente"}</span> ${t}</div>`).join("");
 }

@@ -6,7 +6,7 @@
 <style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}[hidden]{display:none!important}img{max-width:100%}</style>
 <title>SUBE · Diseño de subestaciones</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<meta name="description" content="Herramienta de diseño de subestaciones: coordinación de aislamiento, conductores, distancias, malla de puesta a tierra, apantallamiento y simulador 3D. Caso base: S/E Termales 115 kV.">
+<meta name="description" content="Herramienta de diseño de subestaciones: coordinación de aislamiento, distancias, malla de puesta a tierra, apantallamiento y simulador 3D. Caso base: S/E Termales 115 kV.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
@@ -201,7 +201,7 @@ a{color:var(--link)}
     <div class="ttl">
       <small>Subestaciones Eléctricas 2026-2 · Proyecto final</small>
       <h1 id="hT">S/E Termales <em>115 kV</em></h1>
-      <p>Herramienta de diseño de subestaciones: aislamiento, conductores, distancias, malla de tierra, apantallamiento y patio en 3D. Sirve para cualquier subestación; el caso base es la S/E Termales 115 kV.</p>
+      <p>Herramienta de diseño de subestaciones: aislamiento, distancias, malla de tierra, apantallamiento y patio en 3D. Sirve para cualquier subestación; el caso base es la S/E Termales 115 kV.</p>
     </div>
     <div class="ficha" id="ficha" aria-label="Datos de la subestación">
     </div>
@@ -212,13 +212,11 @@ a{color:var(--link)}
   <div class="wrap" role="tablist">
     <button class="tab" role="tab" data-tab="resumen" aria-selected="true">Resumen</button>
     <button class="tab" role="tab" data-tab="aislamiento" aria-selected="false"><i class="st" id="st-ais"></i>Aislamiento</button>
-    <button class="tab" role="tab" data-tab="conductores" aria-selected="false"><i class="st" id="st-con"></i>Conductores</button>
     <button class="tab" role="tab" data-tab="distancias" aria-selected="false"><i class="st" id="st-dis"></i>Distancias</button>
     <button class="tab" role="tab" data-tab="malla" aria-selected="false"><i class="st" id="st-mal"></i>Malla de tierra</button>
     <button class="tab" role="tab" data-tab="apantallamiento" aria-selected="false"><i class="st" id="st-apa"></i>Apantallamiento</button>
     <button class="tab" role="tab" data-tab="configuraciones" aria-selected="false">Configuraciones</button>
     <button class="tab" role="tab" data-tab="simulador" aria-selected="false">Simulador 3D</button>
-    <button class="tab" role="tab" data-tab="validacion" aria-selected="false"><i class="st" id="st-val"></i>Validación</button>
     <button class="tab" role="tab" data-tab="normas" aria-selected="false">Normas</button>
   </div>
 </nav>
@@ -229,7 +227,7 @@ a{color:var(--link)}
 <section class="panel" id="p-resumen">
   <div class="phead">
     <div><p class="eyebrow">Resumen ejecutivo</p><h2>Así va el diseño de la subestación</h2>
-    <p>Cada módulo calcula una parte del diseño y le pasa su resultado al siguiente: el pararrayos fija el BIL, el BIL fija las distancias, y las distancias y los conductores definen el patio, la malla y el apantallamiento. Toque una tarjeta para ver el cálculo completo.</p></div>
+    <p>Cada módulo calcula una parte del diseño y le pasa su resultado al siguiente: el pararrayos fija el BIL, el BIL fija las distancias, y las distancias definen el patio, la malla y el apantallamiento. Toque una tarjeta para ver el cálculo completo.</p></div>
     <div class="actions"><button class="btn" id="btnNew" type="button">Nuevo proyecto</button><button class="btn" id="btnOpen" type="button">Abrir</button><button class="btn" id="btnSave" type="button">Guardar</button><button class="btn" id="btnResetAll" type="button">Caso base S/E Termales</button><button class="btn pri printBtn" type="button">Imprimir o guardar PDF</button><input type="file" id="fileOpen" accept=".json,application/json" hidden></div>
   </div>
   <details class="card" id="proyCard"><summary>Datos del proyecto <small id="proyHint"></small></summary><div class="grid" id="fProy" style="margin-top:12px"></div></details>
@@ -271,7 +269,7 @@ a{color:var(--link)}
 <!-- ================= DISTANCIAS ================= -->
 <section class="panel" id="p-distancias" hidden>
   <div class="phead">
-    <div><p class="eyebrow">Módulo 3 · Método del curso · RETIE</p><h2>Distancias eléctricas</h2>
+    <div><p class="eyebrow">Módulo 2 · Método del curso · RETIE</p><h2>Distancias eléctricas</h2>
     <p>A qué distancia debe estar cada parte energizada: de las estructuras, entre fases, de las personas y de los vehículos; y a qué altura van equipos, barras y llegadas de línea.</p></div>
     <div class="actions"><button class="btn" id="btnCopyCons" type="button">Copiar tabla</button><button class="btn copyMemo" data-memo="memoDis" type="button">Copiar memoria</button><button class="btn pri printBtn" type="button">Imprimir o guardar PDF</button></div>
   </div>
@@ -296,7 +294,7 @@ a{color:var(--link)}
 <!-- ================= MALLA ================= -->
 <section class="panel" id="p-malla" hidden>
   <div class="phead">
-    <div><p class="eyebrow">Módulo 4 · IEEE Std 80-2013</p><h2>Malla de puesta a tierra</h2>
+    <div><p class="eyebrow">Módulo 3 · IEEE Std 80-2013</p><h2>Malla de puesta a tierra</h2>
     <p>Comprueba que, durante una falla a tierra, una persona en el patio no reciba una tensión de toque o de paso peligrosa. Los supuestos del diseño se explican y se ponen a prueba al final de la página.</p></div>
     <div class="actions"><button class="btn copyMemo" data-memo="memoMal" type="button">Copiar memoria</button><button class="btn pri printBtn" type="button">Imprimir o guardar PDF</button></div>
   </div>
@@ -352,7 +350,7 @@ a{color:var(--link)}
 <!-- ================= APANTALLAMIENTO ================= -->
 <section class="panel" id="p-apantallamiento" hidden>
   <div class="phead">
-    <div><p class="eyebrow">Módulo 5 · IEEE Std 998 · Modelo electrogeométrico</p><h2>Apantallamiento contra rayos</h2>
+    <div><p class="eyebrow">Módulo 4 · IEEE Std 998 · Modelo electrogeométrico</p><h2>Apantallamiento contra rayos</h2>
     <p>Comprueba que los cables de guarda intercepten los rayos capaces de dañar el aislamiento. Se calcula la corriente crítica del rayo, la distancia de descarga (el radio de la «esfera rodante») y si las barras quedan por debajo de la zona protegida.</p></div>
     <div class="actions"><button class="btn copyMemo" data-memo="memoApa" type="button">Copiar memoria</button><button class="btn pri printBtn" type="button">Imprimir o guardar PDF</button></div>
   </div>
@@ -386,22 +384,11 @@ a{color:var(--link)}
   <div class="cfgs" id="cfgCards"></div>
 </section>
 
-<!-- ================= VALIDACIÓN ================= -->
-<section class="panel" id="p-validacion" hidden>
-  <div class="phead">
-    <div><p class="eyebrow">Control de calidad · Ejemplos publicados</p><h2>Validación de los cálculos</h2>
-    <p>Cada vez que se abre esta página, el mismo motor que calcula el proyecto resuelve ejemplos publicados en las normas, en los apuntes del curso y en las entregas del proyecto, y compara. Si un cálculo cambiara por error, aquí se vería.</p></div>
-    <div class="actions"><button class="btn pri printBtn" type="button">Imprimir o guardar PDF</button></div>
-  </div>
-  <div id="vVal"></div>
-  <div class="card"><div class="scroll"><table id="tVal"></table></div>
-    <p class="norma" style="margin:8px 0 0">Se acepta una diferencia de hasta 1 %, que es el redondeo normal de los valores publicados.</p></div>
-</section>
 
 <!-- ================= SIMULADOR ================= -->
 <section class="panel" id="p-simulador" hidden>
   <div class="phead">
-    <div><p class="eyebrow">Módulo 6 · Maniobras y patio 3D</p><h2>Simulador de la subestación</h2>
+    <div><p class="eyebrow">Módulo 5 · Maniobras y patio 3D</p><h2>Simulador de la subestación</h2>
     <p>Unifilar con enclavamientos y flujo de carga de ETAP, patio en 3D, sala de control y apantallamiento. El unifilar sigue la configuración del proyecto cuando el simulador la tiene (barra sencilla, principal + transferencia, doble barra y doble barra + transferencia). El patio 3D está modelado para el caso base S/E Termales. Funciona mejor en computador.</p></div>
     <div class="actions"><a class="btn pri" href="simulador.html" target="_blank" rel="noopener">Abrir en pantalla completa</a></div>
   </div>
@@ -439,16 +426,15 @@ a{color:var(--link)}
         <li><b>Grupo 1</b> (parámetros y aislamiento): BIL 550 kV, pararrayos Siemens 3EL2 096-2PJ3 (Ur 96 kV, Upl 226 kV), Ka 1,103, fuga mínima 3383 mm (kd 1,1), equipos 31,5 kA / 1 s, 82 kA pico, barrajes de 2000 A, distancia máxima pararrayos–equipo 28,6 m.</li>
         <li><b>Grupo 2</b> (distancias): BIL ya corregido por altura, por eso las distancias se calculan a condiciones de referencia. Factor fase–fase 1,15, vano 22 m, flecha 3 %.</li>
         <li><b>ETAP</b> (IEC 60909): barra 115 kV, falla trifásica 30,00 kA y monofásica 30,88 kA (ip 79,6 kA). Red equivalente X/R = 15 (supuesto).</li>
-        <li><b>Configuración</b>: «barraje doble principal y transferencia» del enunciado, modelado como doble barra + transferencia (BP1, BP2 y BT), con 3 líneas, 2 bancos, acople, transferencia y un campo de reserva.</li>
+        <li><b>Configuración</b>: «barraje doble principal y transferencia» del enunciado: una barra principal y una de transferencia, con 3 líneas, 2 bancos, la bahía de transferencia y un campo de reserva.</li>
         <li><b>Aislador</b>: Siemens 3FL3-074 polimérico (fuga 3494 mm ≥ 3383 mm de G1, LIWV 742 kV, SML 100 kN, longitud 1393 mm).</li>
-        <li><b>Conductores</b>: barras con 3 × ACSR Drake 795 kcmil por fase para los 2000 A de G1 (supuesto hasta la entrega del Grupo 3) y 26 °C de ambiente, como recomienda G1. La tensión de tendido (150 kgf) es un supuesto que reproduce la flecha de 0,66 m del Grupo 2.</li>
         <li><b>Malla</b>: ρ = 800 Ω·m (dato del proyecto); falla 1F de ETAP, despeje 0,5 s, persona de 50 kg. Sf = 0,2, grava de 5000 Ω·m y 20 cm, 130 × 70 m con cuadrícula de 4 m y 120 electrodos de 20 m: supuestos de diseño, explicados y puestos a prueba en el módulo de malla.</li>
-        <li><b>Apantallamiento</b>: cables de guarda a 11 m sobre pórticos de 11 m de ancho y 2 rayos/km²·año: supuestos mientras el Grupo 4 define su diseño y el valor de NTC 4552.</li>
+        <li><b>Apantallamiento</b>: cables de guarda a 11 m sobre pórticos de 11 m de ancho y 2 rayos/km²·año: supuestos mientras el Grupo 4 define su diseño y el valor de NTC 4552. La malla y el apantallamiento se actualizarán con las entregas de los grupos 3 y 4.</li>
       </ul>
   </div>
   <div class="card"><h3>Equipo del proyecto <small>Subestaciones Eléctricas 2026-2 · Docente: E.E. MSc. Javier Andrés Ruiz Garzón</small></h3>
-    <div class="team"><div><h4>Grupo 1</h4><ul><li>Julian Rubiano</li><li><u>Óscar Julián Limas</u></li><li>Danna Guerrero</li><li>Michael Duarte</li><li><u>Ángel Daniel Cepeda</u></li></ul></div><div><h4>Grupo 2</h4><ul><li>Juan Guillermo Nuñez</li><li>Diego Andres Cely</li><li>Juan Diego García</li><li>Stiven Montaño</li><li>David Durán</li></ul></div><div><h4>Grupo 3</h4><ul><li><u>Camilo Andrés Palomar</u></li><li>Daniel Andrés Chávez</li><li>María Fernanda Chala</li><li>Marlon Nivia</li><li><u>Santiago Alfonso Tinoco</u></li></ul></div><div><h4>Grupo 4</h4><ul><li>Ingrid Quiroga</li><li>Andres Coa</li><li>Yuli Leon</li></ul></div></div>
-    <p class="norma" style="margin:10px 0 0">Subrayados: autores de esta herramienta. Ángel Daniel Cepeda: módulo de aislamiento. Óscar Julián Limas: módulo de distancias. Camilo Andrés Palomar: módulo de malla de puesta a tierra. Santiago Alfonso Tinoco: simulador 3D e integración.</p>
+    <div class="team"><div><h4>Grupo 1</h4><ul><li>Julian Rubiano</li><li>Óscar Julián Limas</li><li>Danna Guerrero</li><li>Michael Duarte</li><li>Ángel Daniel Cepeda</li></ul></div><div><h4>Grupo 2</h4><ul><li>Juan Guillermo Nuñez</li><li>Diego Andres Cely</li><li>Juan Diego García</li><li>Stiven Montaño</li><li>David Durán</li></ul></div><div><h4>Grupo 3</h4><ul><li>Camilo Andrés Palomar</li><li>Daniel Andrés Chávez</li><li>María Fernanda Chala</li><li>Marlon Nivia</li><li>Santiago Alfonso Tinoco</li></ul></div><div><h4>Grupo 4</h4><ul><li>Ingrid Quiroga</li><li>Andres Coa</li><li>Yuli Leon</li></ul></div></div>
+    <p class="norma" style="margin:10px 0 0">Autores de esta herramienta. Ángel Daniel Cepeda: módulo de aislamiento. Óscar Julián Limas: módulo de distancias. Camilo Andrés Palomar: módulo de malla de puesta a tierra. Santiago Alfonso Tinoco: simulador 3D e integración.</p>
   </div>
 </section>
 </main>
@@ -498,7 +484,7 @@ const FORMS={
     num("dis","dMan","δ manual",""),num("dis","fff","Factor fase–fase","",{step:0.05,hint:"Caso base: 1,15. Curso: 1,4 a 2."}),num("dis","galibo","Gálibo del vehículo","m",{step:0.1}),chk("dis","rnd","Redondeo constructivo",{wide:true})],
   fDisAdv:[num("dis","Es","Gradiente crítico Es","kV/m",{step:10}),num("dis","kS","Factor de seguridad",""),num("dis","nExp","Exponente de δ",""),num("dis","kVB","Factor del valor básico","")],
   fDisBar:[sel("dis","barra","Tipo de barraje",[["flex","Flexible (cable tendido)"],["rig","Rígido (tubo)"]],{wide:true}),sel("dis","cond","Conductor",[["ACSR","ACSR (K = 10)"],["Cu","Cobre (K = 1,75)"],["otro","Otro (K manual)"]]),num("dis","K","Constante K",""),num("dis","vano","Vano de barras","m",{step:0.5}),
-    sel("dis","fMode","Flecha",[["pct","% del vano"],["con","Del módulo de conductores"],["ten","Por tensión de tendido"]]),num("dis","pct","Flecha","% vano",{step:0.1}),num("dis","w","Peso del conductor","kg/m",{step:0.001}),num("dis","Fh","Tensión horizontal","kgf",{step:10}),num("dis","Wb","Ancho de bahía de diseño","m",{step:0.5,hint:"0 = no verificar"})],
+    sel("dis","fMode","Flecha",[["pct","% del vano"],["ten","Por tensión de tendido"]]),num("dis","pct","Flecha","% vano",{step:0.1}),num("dis","w","Peso del conductor","kg/m",{step:0.001}),num("dis","Fh","Tensión horizontal","kgf",{step:10}),num("dis","Wb","Ancho de bahía de diseño","m",{step:0.5,hint:"0 = no verificar"})],
   fMalFal:[num("mal","If","Falla monofásica 3I₀","kA",{hint:"Simétrica, en la barra. Caso base (ETAP): 30,88 kA"}),num("mal","XR","Relación X/R","",{hint:"Caso base: 15"}),num("mal","tf","Tiempo de despeje tf","s",{step:0.05}),num("mal","tc","Tiempo para el conductor tc","s",{hint:"Caso base: equipos de 31,5 kA / 1 s"})],
   fMalSue:[num("mal","rho","Resistividad del suelo ρ","Ω·m"),num("mal","rhos","Resistividad de la grava ρs","Ω·m"),num("mal","hs","Espesor de la grava hs","m",{step:0.05}),sel("mal","peso","Peso de la persona",[["50","50 kg (más exigente)"],["70","70 kg"]]),num("mal","Ta","Temperatura ambiente","°C")],
   fMalGeo:[num("mal","Lx","Largo Lx","m"),num("mal","Ly","Ancho Ly","m"),num("mal","D","Espaciamiento D","m",{step:0.5}),num("mal","h","Profundidad h","m",{step:0.1}),sel("mal","size","Conductor",Object.entries(SIZES).map(([k,v])=>[k,`${v[0]} · ${fm(v[1],1)} mm²`])),sel("mal","mat","Material",Object.entries(MAT).map(([k,v])=>[k,v.n])),sel("mal","conn","Uniones",Object.entries(CONN).map(([k,v])=>[k,v.n])),num("mal","nR","Número de electrodos","",{step:1}),num("mal","LR","Longitud de cada electrodo","m",{hint:"Varillas acopladas (electrodo profundo)."}),sel("mal","rodPos","Ubicación de varillas",[["esq","Esquinas y perímetro"],["no","Pocas o no en esquinas"]])]
@@ -788,7 +774,7 @@ $("btnCopyCons").addEventListener("click",()=>{copyText(["Distancia\tExpresión\
    Pestañas, impresión y arranque
    ============================================================ */
 function setSt(id,c){const e=$(id);if(e)e.className="st "+c}
-const TABS=["resumen","aislamiento","conductores","distancias","malla","apantallamiento","configuraciones","simulador","validacion","normas"];
+const TABS=["resumen","aislamiento","distancias","malla","apantallamiento","configuraciones","simulador","normas"];
 function showTab(t,push){if(!TABS.includes(t))t="resumen";
   document.querySelectorAll(".tab").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.tab===t)));
   TABS.forEach(x=>$("p-"+x).hidden=x!==t);
@@ -802,7 +788,7 @@ $("btnResetAll").addEventListener("click",()=>{S=JSON.parse(JSON.stringify(DEF))
 const framed=(()=>{try{return window.self!==window.top}catch(e){return true}})();
 document.querySelectorAll(".printBtn").forEach(b=>{if(framed)b.hidden=true;else b.addEventListener("click",()=>window.print())});
 function renderAll(){normalize();renderAis();renderDis();renderCon();renderMal();renderApa();renderCfg();renderResumen();renderHdr()}
-document.addEventListener("DOMContentLoaded",()=>{buildForms();renderAll();renderVal();renderCat();showTab(location.hash.slice(1)||"resumen")});
+document.addEventListener("DOMContentLoaded",()=>{buildForms();renderAll();renderCat();showTab(location.hash.slice(1)||"resumen")});
 </script>
 <script src="modulos.js"></script>
 
