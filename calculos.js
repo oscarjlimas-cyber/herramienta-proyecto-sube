@@ -20,7 +20,7 @@ const DEF={
   dis:{link:true,BSL:0,BIL:550,dMode:"none",dMan:0.893,fff:1.15,galibo:4,rnd:true,Es:550,kS:1.04,nExp:0.9,kVB:1.1,barra:"flex",cond:"ACSR",K:10,vano:22,fMode:"pct",pct:3,w:1.628,Fh:500,Wb:11},
   mal:{If:30.876,XR:15,Sf:0.2,tf:0.5,tc:1,rho:800,rhos:5000,hs:0.2,peso:50,Ta:18,Lx:130,Ly:70,D:4,h:0.6,size:"250",mat:"duro",conn:"exo",nR:120,LR:20,rodPos:"esq",sfMode:"man",sfN:5,sfR:1.5,sfGmr:0.6,sfSpan:300,sfRt:20}
 };
-const SUBE_KEY="sube-termales-web-v3";
+const SUBE_KEY="sube-termales-web-v4";
 /* Lee los datos guardados por la herramienta (o los del proyecto si no hay) */
 function SUBE_load(){const S=JSON.parse(JSON.stringify(DEF));
   try{const s=JSON.parse(localStorage.getItem(SUBE_KEY)||"null");if(s&&s.v===3)for(const m of Object.keys(DEF))Object.assign(S[m],s[m]||{})}catch(e){}
@@ -41,9 +41,9 @@ const CLR_SI={750:[1.6,1.9],850:[1.8,2.4],950:[2.2,2.9],1050:[2.6,3.4],1175:[3.1
 /* Configuraciones de barras: interruptores y seccionadores (sin cuchillas de tierra) para n circuitos; extra = bahías de acople/transferencia */
 const CFG={
   bs:{n:"Barra sencilla",int:n=>n,sec:n=>2*n,extra:0,sim:"bs"},
-  bpt:{n:"Barra principal + transferencia",int:n=>n+1,sec:n=>3*n+2,extra:1,sim:"bpt"},
+  bpt:{n:"Barra principal y transferencia (2 barras)",int:n=>n+1,sec:n=>3*n+2,extra:1,sim:"bpt"},
   db:{n:"Doble barra",int:n=>n+1,sec:n=>3*n+2,extra:1,sim:"db"},
-  dbt:{n:"Doble barra + transferencia",int:n=>n+2,sec:n=>4*n+4,extra:2,sim:"dbt"},
+  dbt:{n:"Doble barra + transferencia (3 barras)",int:n=>n+2,sec:n=>4*n+4,extra:2,sim:"dbt"},
   an:{n:"Anillo",int:n=>n,sec:n=>3*n,extra:0,sim:null},
   iym:{n:"Interruptor y medio",int:n=>Math.ceil(1.5*n),sec:n=>4*n,extra:0,sim:null},
   di:{n:"Doble barra con doble interruptor",int:n=>2*n,sec:n=>5*n,extra:0,sim:null}
