@@ -191,10 +191,6 @@ input:disabled{opacity:.75}
   <div class="cfg">
     <label for="cfgSel">Configuración</label>
     <select id="cfgSel">
-      <option value="dbt">Doble barra (principal y reserva) + transferencia</option>
-      <option value="db">Doble barra (principal y reserva)</option>
-      <option value="bpt">Barra principal + transferencia</option>
-      <option value="bs">Barra sencilla</option>
     </select>
     <button class="btn" id="btnReset" type="button">Volver a estado normal</button>
     <button class="btn didbtn" id="didBtn" type="button" aria-pressed="false">⚡ Modo didáctico: apagado</button>
@@ -274,12 +270,52 @@ const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmt=(n,d=1)=>Number(n).toLocaleString('es-CO',{maximumFractionDigits:d});
 const KEY='sube-sim-v1';
+const CN=k=>(window.SUBE&&SUBE.CFG[k]?SUBE.CFG[k].n:k);
 const CONFIGS={
-  bs:{name:'Barra sencilla',b2:false,bt:false},
-  bpt:{name:'Barra principal + transferencia',b2:false,bt:true},
-  db:{name:'Doble barra (principal y reserva)',b2:true,bt:false},
-  dbt:{name:'Doble barra (principal y reserva) + transferencia',b2:true,bt:true},
+  bs:{name:CN('bs'),b2:false,bt:false},
+  bpt:{name:CN('bpt'),b2:false,bt:true},
+  db:{name:CN('db'),b2:true,bt:false},
+  dbt:{name:CN('dbt'),b2:true,bt:true},
+  an:{name:CN('an'),b2:false,bt:false,adv:'an'},
+  iym:{name:CN('iym'),b2:false,bt:false,adv:'iym'},
+  di:{name:CN('di'),b2:false,bt:false,adv:'di'},
 };
+const ADVTXT={an:'Cada circuito queda entre dos interruptores del anillo. Abrir un solo interruptor no saca ningún circuito; para sacar un circuito se abren sus dos interruptores vecinos y después su seccionador.',
+  iym:'Cada pareja de circuitos comparte un diámetro de tres interruptores entre las barras B1 y B2 (un interruptor y medio por circuito). Se puede perder una barra o sacar un interruptor sin cortar ningún circuito.',
+  di:'Cada circuito tiene dos interruptores, uno a cada barra. Se puede perder una barra o sacar un interruptor sin cortar ningún circuito.'};
+const ADVD={cb:{ref:'',tipo:'SF6 tanque vivo',un:123,in:2000,icc:31.5,mando:'Resorte',ciclo:'O-0,3 s-CO-3 min-CO'},ds:{ref:'',tipoB:'Apertura central',tipoL:'Apertura central',un:123,in:2000,ik:31.5,mando:'Motor'},ct:{rel:'1000-2000/1',nuc:'3 × 5P20 + 1 × 0,2S',va:30,ith:31.5}};
+/* Topología de anillo, interruptor y medio y doble interruptor. Cada seccionador queda enclavado (lock) con los interruptores de su rama. */
+function advTopo(els,ord,c){
+  const E=(id,bay,kind,role,a,b,code,name,lock)=>els.push({id,bay,kind,role,a,b,code,name,lock}),near={},n=ord.length;ord.forEach(p=>near[p]=[]);
+  if(c.adv==='di') ord.forEach(p=>{
+    E(p+':S1',p,'ds','S1','B1',p+'.a',`89-${p}-B1`,'Seccionador de barra del interruptor 1 (B1)',[p+':CB']);
+    E(p+':CB',p,'cb','CB',p+'.a',p+'.b',`52-${p}-1`,'Interruptor 1: une el circuito con la barra B1');
+    E(p+':D1',p,'ds','D1',p+'.b',p+'.j',`89-${p}-1`,'Seccionador del interruptor 1, lado del circuito',[p+':CB']);
+    E(p+':S2',p,'ds','S2','B2',p+'.c',`89-${p}-B2`,'Seccionador de barra del interruptor 2 (B2)',[p+':CB2']);
+    E(p+':CB2',p,'cb','CB2',p+'.c',p+'.d',`52-${p}-2`,'Interruptor 2: une el circuito con la barra B2');
+    E(p+':D2',p,'ds','D2',p+'.d',p+'.j',`89-${p}-2`,'Seccionador del interruptor 2, lado del circuito',[p+':CB2']);
+    near[p]=[p+':CB',p+':CB2'];});
+  if(c.adv==='an'&&n>1) ord.forEach((p,i)=>{const q=ord[(i+1)%n],k='A'+(i+1);
+    E(k+':S1',k,'ds','S1',p+'.j',k+'.a',`89-${k}-1`,`Seccionador del interruptor ${k}, lado de ${p}`,[k+':CB']);
+    E(k+':CB',k,'cb','CB',k+'.a',k+'.b',`52-${k}`,`Interruptor del anillo entre ${p} y ${q}`);
+    E(k+':S2',k,'ds','S2',k+'.b',q+'.j',`89-${k}-2`,`Seccionador del interruptor ${k}, lado de ${q}`,[k+':CB']);
+    near[p].push(k+':CB');near[q].push(k+':CB');});
+  if(c.adv==='iym') for(let i=0,d=1;i<n;i+=2,d++){const p=ord[i],q=ord[i+1],k='D'+d,last=q||p;
+    E(k+':SA',k,'ds','SA','B1',k+'.a',`89-${k}-B1`,`Seccionador de barra B1 del diámetro ${k}`,[k+':CBA']);
+    E(k+':CBA',k,'cb','CBA',k+'.a',k+'.b',`52-${k}-A`,`Interruptor del diámetro ${k} hacia la barra B1`);
+    E(k+':SA2',k,'ds','SA2',k+'.b',p+'.j',`89-${k}-A`,`Seccionador del 52-${k}-A, lado de ${p}`,[k+':CBA']);
+    near[p].push(k+':CBA');
+    if(q){E(k+':SM1',k,'ds','SM1',p+'.j',k+'.c',`89-${k}-M1`,`Seccionador del interruptor central, lado de ${p}`,[k+':CBM']);
+      E(k+':CBM',k,'cb','CBM',k+'.c',k+'.d',`52-${k}-M`,`Interruptor central del diámetro ${k}, compartido por ${p} y ${q}`);
+      E(k+':SM2',k,'ds','SM2',k+'.d',q+'.j',`89-${k}-M2`,`Seccionador del interruptor central, lado de ${q}`,[k+':CBM']);
+      near[p].push(k+':CBM');near[q].push(k+':CBM');}
+    E(k+':SB2',k,'ds','SB2',last+'.j',k+'.e',`89-${k}-B`,`Seccionador del 52-${k}-B, lado de ${last}`,[k+':CBB']);
+    E(k+':CBB',k,'cb','CBB',k+'.e',k+'.f',`52-${k}-B`,`Interruptor del diámetro ${k} hacia la barra B2`);
+    E(k+':SB',k,'ds','SB',k+'.f','B2',`89-${k}-B2`,`Seccionador de barra B2 del diámetro ${k}`,[k+':CBB']);
+    near[last].push(k+':CBB');}
+  els.forEach(e=>{if(e.role==='SL'&&near[e.bay])e.lock=near[e.bay];});
+  return near;
+}
 
 /* ---------- Datos por defecto (ejemplo) ---------- */
 const defCB=()=>({ref:'',tipo:'SF6 tanque vivo',un:123,in:1250,icc:31.5,mando:'Resorte',ciclo:'O-0,3 s-CO-3 min-CO'});
@@ -343,11 +379,12 @@ function build(){
   const add=(id,bay,kind,role,a,b,code,name)=>els.push({id,bay,kind,role,a,b,code,name});
   for(const bay of state.bays){
     const p=bay.id, tr=bay.tipo==='trafo';
+    if(c.adv) add(p+':SL',p,'ds','SL',p+'.j',p+'.x',`89-${p}-${tr?'TR':'L'}`,tr?'Seccionador del transformador':'Seccionador de línea'); else {
     add(p+':S1',p,'ds','S1','B1',p+'.a',c.b2?`89-${p}-B1`:`89-${p}-B`,c.b2?'Seccionador a barra principal (B1)':'Seccionador de barra');
     if(c.b2) add(p+':S2',p,'ds','S2','B2',p+'.a',`89-${p}-B2`,'Seccionador a barra de reserva (B2)');
     add(p+':CB',p,'cb','CB',p+'.a',p+'.b',`52-${p}`,tr?'Interruptor del transformador':'Interruptor de línea');
     add(p+':SL',p,'ds','SL',p+'.b',p+'.x',`89-${p}-${tr?'TR':'L'}`,tr?'Seccionador del transformador':'Seccionador de línea');
-    if(c.bt) add(p+':ST',p,'ds','ST',p+'.x','BT',`89-${p}-T`,'Seccionador de transferencia (by-pass)');
+    if(c.bt) add(p+':ST',p,'ds','ST',p+'.x','BT',`89-${p}-T`,'Seccionador de transferencia (by-pass)');}
     add(p+':ET',p,'es','ET',p+'.x','G:'+p,`57-${p}`,'Cuchilla de puesta a tierra');
     if(bay.gen){
       add(p+':HE',p,'es','HE',p+'.h','G:'+p+'h',`57-${p}-230`,'Cuchilla de tierra lado 230 kV (en la central, fuera del alcance)');
@@ -374,13 +411,16 @@ function build(){
   for(let i=0;i<Math.max(Ls.length,Ts.length);i++){if(Ls[i])f.push(Ls[i]);if(Ts[i])f.push(Ts[i]);}
   const h=Math.ceil(f.length/2);
   const order=[...f.slice(0,h),...(c.b2&&!c.bt?['AC']:[]),...(c.bt?['AT']:[]),...f.slice(h)];
+  const near=c.adv?advTopo(els,order,c):{};
   const byId={}; els.forEach(e=>{byId[e.id]=e; if(!(e.id in state.sw)) state.sw[e.id]=false;});
   for(const k of Object.keys(state.sw)) if(!byId[k]) delete state.sw[k];
   const res=Array.from({length:Math.max(0,Math.min(4,Math.round(+state.sub.res||0)))},(_,i)=>'R'+(i+1));
-  T={els,byId,sources,loads,order,c,res,all:[...order,...res],comb:c.b2&&c.bt};
+  T={els,byId,sources,loads,order,c,res,all:[...order,...res],comb:c.b2&&c.bt,near};
+  if(typeof setZ==='function') setZ(c);
 }
 function normalState(){
   const c=CONFIGS[state.config]; state.sw={}; state.prot={};
+  if(c.adv){state.bays.forEach(b=>{b.fuente=b.tipo==='linea'||!!b.gen;});build();T.els.forEach(e=>{state.sw[e.id]=e.kind!=='es';});return;}
   state.bays.forEach(b=>{
     state.sw[b.id+':S1']=true; if(c.b2) state.sw[b.id+':S2']=false;
     state.sw[b.id+':CB']=true; state.sw[b.id+':SL']=true; b.fuente=b.tipo==='linea'||!!b.gen;
@@ -403,6 +443,7 @@ function status(){const A=adj(),en=new Set(),ea=new Set();
   return {en,ea};}
 const bayOf=id=>state.bays.find(b=>b.id===id);
 const dataOf=id=>bayOf(id)?.data||state.special[id];
+const linked=p=>[...comp(p+'.j')].some(n=>n==='B1'||n==='B2'||(n!==p+'.j'&&n.endsWith('.j')));
 
 /* ---------- Enclavamientos ---------- */
 function protTo(p,toAT){const sw=state.sw;state.prot??={};
@@ -410,7 +451,7 @@ function protTo(p,toAT){const sw=state.sw;state.prot??={};
   else {if(!sw[p+':CB']||!sw[p+':SL']) return `Para devolver las protecciones de ${p}, su interruptor 52-${p} y ${T.byId[p+':SL'].code} deben estar cerrados.`; delete state.prot[p]; log(`Selector 43T-${p} en NORMAL: las protecciones de ${p} vuelven a disparar el 52-${p}`,'op');}
   save(); return null;}
 function canOperate(el){
-  const sw=state.sw, closing=!sw[el.id], c=T.c, cb=T.byId[el.bay+(/^H/.test(el.role)?':HC':':CB')];
+  const sw=state.sw, closing=!sw[el.id], c=T.c, cb=T.byId[el.bay+(/^H/.test(el.role)?':HC':':CB')]||{code:(T.near[el.bay]||[]).map(k=>T.byId[k].code).join(' y ')||'los interruptores de la rama'};
   const no=r=>({ok:false,reason:r}), yes={ok:true};
   if(el.kind==='es'){
     if(!closing) return yes;
@@ -419,7 +460,7 @@ function canOperate(el){
       const bay=bayOf(el.bay);
       if(bay&&bay.gen){const p=bay.id,need=[p+':CB',p+':SL',p+':HC',p+':HS'].filter(k=>sw[k]).map(k=>T.byId[k].code);
         return no(`El autotransformador ${p} está energizado${cu.has('C:'+p)&&sw[p+':HC']?' desde el lado de 230 kV (central)':''}. Para aterrizar ${el.role==='HE'?'el lado de 230 kV':'el lado de 115 kV'} deben estar abiertos ambos lados: ${need.join(', ')||'interruptores y seccionadores'}${sw[p+':HC']||sw[p+':HS']?'. Los equipos de 230 kV se abren por orden a la central':''}.`);}
-      const onlyRemote=bay&&bay.fuente&&![...cu].some(n=>n==='B1'||n==='B2'||n==='BT');
+      const onlyRemote=bay&&bay.fuente&&![...cu].some(n=>n==='B1'||n==='B2'||n==='BT'||n.endsWith('.j'));
       return no(onlyRemote?(bay.tipo==='linea'?`La línea sigue energizada desde el extremo remoto (${bay.data.ln.destino}). Pida la apertura en el otro extremo antes de aterrizar.`:`El autotransformador ${bay.id} sigue energizado desde el lado de ${fmt(bay.data.tr.v2)} kV (central de generación). Coordine la apertura de ese lado antes de aterrizar.`)
         :`El punto está energizado. Abra ${cb.code} y los seccionadores de la bahía antes de aterrizar.`);
     }
@@ -428,6 +469,13 @@ function canOperate(el){
   const cu=comp(el.a,el.id), cv=comp(el.b,el.id);
   const parallel=cu.has(el.b);
   const earthMix=(hasEarth(cu)&&hasSrc(cv))||(hasEarth(cv)&&hasSrc(cu));
+  if(c.adv&&el.kind==='ds'){
+    if(closing&&earthMix) return no('Cerraría sobre una cuchilla de tierra cerrada con el otro lado energizado.');
+    const lk=(el.lock||[]).filter(k=>sw[k]);
+    if(lk.length){const aU=hasSrc(cu)||hasLoad(cu),aV=hasSrc(cv)||hasLoad(cv),hard=(parallel&&hasSrc(cu))||(aU&&aV&&(hasSrc(cu)||hasSrc(cv)));
+      return {ok:false,soft:!hard,reason:`${el.code} está enclavado con ${lk.map(k=>T.byId[k].code).join(' y ')}: ${lk.length>1?'deben estar abiertos':'debe estar abierto'} para ${closing?'cerrarlo':'abrirlo'}. Un seccionador no puede cortar ni establecer corriente.`};}
+    return yes;
+  }
   if(el.kind==='cb'){
     if(closing&&earthMix) return no(`Hay una cuchilla de tierra cerrada en la zona que se energizaría. Ábrala antes de cerrar ${el.code}.`);
     const pr=state.prot||{};
@@ -474,7 +522,7 @@ function operate(id){
   const el=T.byId[id]; if(!el) return;
   const r=canOperate(el);
   if(!/^H/.test(el.role)&&(state.lr||{})[el.bay]==='L'){log(`${el.code} bloqueado: la bahía ${el.bay} está en LOCAL (43LR)`,'block');toast(`${el.code}: bahía ${el.bay} en LOCAL. Pase el selector 43LR a REMOTO en la sala de control.`);render();return false;}
-  if(!r.ok&&didactic){mishap(el,r.reason);return true;}
+  if(!r.ok&&didactic){mishap(el,r.reason,r.soft);return true;}
   if(!r.ok){log(`${el.code} bloqueado. ${r.reason}`,'block');toast(`${el.code} bloqueado: ${r.reason}`);render();return false;}
   const before=status();
   state.sw[id]=!state.sw[id];
@@ -493,7 +541,7 @@ const nowMs=()=>{const d=new Date();return d.toTimeString().slice(0,8)+'.'+Strin
 const tAdd=(base,ms)=>{const d=new Date(base+ms);return d.toTimeString().slice(0,8)+'.'+String(d.getMilliseconds()).padStart(3,'0');};
 function soePush(t,ied,txt,cls=''){soe.unshift({t,ied,txt,cls});soe=soe.slice(0,80);}
 function iedMeas(){const st=status(),sw=state.sw,R={};
-  const own=p=>st.en.has(p+'.x')&&sw[p+':CB']&&sw[p+':SL']&&(sw[p+':S1']||sw[p+':S2']);
+  const own=p=>T.c.adv?(st.en.has(p+'.x')&&sw[p+':SL']&&linked(p)):(st.en.has(p+'.x')&&sw[p+':CB']&&sw[p+':SL']&&(sw[p+':S1']||sw[p+':S2']));
   const viaT=p=>st.en.has(p+'.x')&&sw[p+':ST']&&sw['AT:CB']&&st.en.has('BT');
   const con=b=>own(b.id)||viaT(b.id);
   const g230=b=>b.gen&&b.fuente&&sw[b.id+':HC']&&sw[b.id+':HS'];
@@ -595,13 +643,14 @@ function faultTrip(nodes){
   trips.forEach(id=>state.sw[id]=false); build();
   return {relays:[...new Set(relays)],trips,act};
 }
-function mishap(el,reason){
+function mishap(el,reason,soft){
   const sw=state.sw,closing=!sw[el.id],before=status();
   const A0=adj(el.id),earthMix=el.kind!=='es'&&((hasEarth(comp(el.a,el.id,A0))&&hasSrc(comp(el.b,el.id,A0)))||(hasEarth(comp(el.b,el.id,A0))&&hasSrc(comp(el.a,el.id,A0))));
   let kind;
   if(el.kind==='es') kind='es';
   else if(el.kind==='cb') kind=closing&&earthMix?'sotf':'warn';
   else kind=(el.role==='ST'&&closing&&T.els.some(e=>e.role==='ST'&&e.bay!=='AT'&&e.id!==el.id&&sw[e.id]))?'warn':(closing?(earthMix?'dsearth':'dsclose'):'dsopen');
+  if(soft&&el.kind==='ds') kind='warn';
   sw[el.id]=closing; build();
   let r={relays:[],trips:[],act:[]};
   if(kind==='sotf'){sw[el.id]=false;r={relays:[`50/51 SOTF · cierre sobre falla: ${el.code} dispara instantáneamente`],trips:[el.id],act:[{ied:el.bay,fn:'50 SOTF',cb:el.code}]};build();}
@@ -613,7 +662,7 @@ function mishap(el,reason){
   const T_={
     es:['Cierre de cuchilla de tierra sobre un punto energizado',`Al cerrar ${el.code} se conectó a tierra un punto con tensión: es una falla trifásica franca a tierra con la corriente de cortocircuito completa (≈ ${fmt(state.sub.icc)} kA). La cuchilla recibe el arco y esfuerzos electrodinámicos, la malla sube de potencial y cualquier persona cerca está en riesgo grave.`,`Abrir ${cb?cb.code:'el interruptor'}, abrir los seccionadores 89 de ambos lados, pedir la apertura del extremo remoto o de la central, verificar ausencia de tensión y solo entonces cerrar ${el.code}. Use la maniobra guiada "Sacar de servicio y aterrizar".`],
     dsopen:['Apertura de seccionador bajo carga',`${el.code} no tiene cámara de extinción. Al separar los contactos con corriente se formó un arco que no se apaga solo: se alarga, quema los contactos y salta entre fases o a tierra, convirtiéndose en un cortocircuito. Es una de las causas más comunes de accidentes graves por arco eléctrico en subestaciones.`,`Primero abrir ${cb?cb.code:'el interruptor 52'}, que sí interrumpe la corriente, y después los seccionadores 89. Si es un by-pass, cierre antes el interruptor en paralelo.`],
-    dsclose:['Cierre de seccionador con carga o entre puntos a distinto potencial',`Al cerrar ${el.code} el seccionador tuvo que establecer corriente. Se forma un arco de precebado entre las cuchillas que las suelda o las destruye y puede evolucionar a falla entre fases.`,`Cerrar los seccionadores con el interruptor abierto (sin corriente) y luego cerrar el 52. Para unir las barras B1 y B2 se cierra primero el acople completo (89-AC-B1, 89-AC-B2 y 52-AC).`],
+    dsclose:['Cierre de seccionador con carga o entre puntos a distinto potencial',`Al cerrar ${el.code} el seccionador tuvo que establecer corriente. Se forma un arco de precebado entre las cuchillas que las suelda o las destruye y puede evolucionar a falla entre fases.`,`Cerrar los seccionadores con el interruptor abierto (sin corriente) y luego cerrar el 52.${T.c.adv?'':' Para unir las barras B1 y B2 se cierra primero el acople completo (89-AC-B1, 89-AC-B2 y 52-AC).'}`],
     dsearth:['Energización sobre una cuchilla de tierra cerrada',`Al cerrar ${el.code} se energizó una zona que tenía una cuchilla de tierra (57) cerrada. Es un cortocircuito franco a tierra establecido por un seccionador.`,`Antes de energizar, abra todas las cuchillas de tierra de la zona y retire las tierras portátiles. Luego cierre seccionadores y, por último, el interruptor.`],
     sotf:['Cierre de interruptor sobre falla',`${el.code} cerró sobre una zona aterrizada por una cuchilla 57. El interruptor sí soporta el cierre sobre falla y su protección lo abrió de inmediato, pero el equipo sufrió el esfuerzo de un cortocircuito y la cuchilla de tierra recibió la corriente de falla.`,`Verificar que no haya cuchillas de tierra cerradas ni tierras portátiles antes de energizar.`],
     warn:['Maniobra insegura (sin arco inmediato)',`${reason} La maniobra se hizo, pero la instalación quedó en una condición de riesgo.`,`Siga la secuencia que indica el enclavamiento o use la maniobra guiada correspondiente.`]};
@@ -734,10 +783,13 @@ function makeProc(kind,p){
       manual(`Análisis N-1 con el centro de control: verificar que ${other.join(' y ')||'la otra fuente'} asume la carga sin sobrecarga (${fmt(bay.data.tr.s)} MVA por banco en ${String(bay.data.tr.refr||'OFAF').split('/').pop().trim()}). Si no alcanza, redespacho o deslastre de carga antes de seguir.`);
       if(bay.data.tr.v3) manual(`Terciario ${fmt(bay.data.tr.v3)} kV: transferir los servicios auxiliares que alimenta a la otra fuente y abrir su celda del terciario.`);
       manual(`Solicitar consignación al centro de control y coordinar por teléfono grabado con el operador de la central (lado ${fmt(bay.data.tr.v2)} kV, fuera del alcance del proyecto).`);}
-    if(sw[p+':CB']) step(p+':CB',false,`Abrir ${code(p+':CB')}${bay.gen?` (lado 115 kV). ${other.join(' y ')||'La otra fuente'} toma la carga`:''}.`);
+    const near=c.adv?(T.near[p]||[]):[];
+    if(c.adv) near.forEach(k=>{if(sw[k]) step(k,false,`Abrir ${code(k)}.`);});
+    else if(sw[p+':CB']) step(p+':CB',false,`Abrir ${code(p+':CB')}${bay.gen?` (lado 115 kV). ${other.join(' y ')||'La otra fuente'} toma la carga`:''}.`);
     if(bay.gen&&sw[p+':HC']) step(p+':HC',false,`Orden a la central: abrir ${code(p+':HC')} (lado 230 kV). El autotransformador queda desenergizado.`);
     if(sw[p+':SL']) step(p+':SL',false,`Abrir ${code(p+':SL')}.`);
     ['S1','S2'].forEach(r=>{if(sw[p+':'+r]) step(p+':'+r,false,`Abrir ${code(p+':'+r)}.`);});
+    if(c.adv&&c.adv!=='di') near.forEach(k=>step(k,true,`Cerrar de nuevo ${code(k)}: ${c.adv==='an'?'el anillo':'el diámetro'} vuelve a quedar completo y ${p} sigue aislado por ${code(p+':SL')}.`));
     if(bay.gen&&sw[p+':HS']) step(p+':HS',false,`Orden a la central: abrir ${code(p+':HS')}. Corte visible en ambos lados.`);
     if(bay.gen) manual('Bloquear y etiquetar (LOTO) los mandos de los interruptores y seccionadores de ambos lados, y verificar ausencia de tensión con detector en 115 kV y en 230 kV.');
     if(bay.tipo==='linea'&&bay.fuente) manual(`Coordinar con el centro de control la apertura de la línea en ${bay.data.ln.destino} (extremo remoto).`,()=>{bay.fuente=false;build();log(`Extremo remoto de ${p} abierto`,'info');});
@@ -750,7 +802,7 @@ function makeProc(kind,p){
 /* ---------- Unifilar ---------- */
 function renderSVG(st){
   const fc=!!state.fc, M=fc?iedMeas():null, RED='#d32f2f', GRN='#2e9d4a';
-  const c=T.c, BW=150, X0=96, n=T.all.length, W=X0+n*BW+90, anyGen=state.bays.some(b=>b.gen), H=anyGen?(fc?670:615):(fc?560:510);
+  const c=T.c, BW=c.adv?178:150, ADY=c.adv?(c.adv==='an'?-34:42):0, X0=96, n=T.all.length, W=X0+n*BW+90, anyGen=state.bays.some(b=>b.gen), H=anyGen?(fc?670:615):(fc?560:510);
   const yB1=46, yB2=88, yBT=360, cen={};
   const col=nd=>st.ea.has(nd)?'var(--earth)':st.en.has(nd)?(fc?RED:'var(--energ)'):(fc?GRN:'var(--dead)');
   const swc=cl=>fc?'var(--ink)':cl?'var(--closed)':'var(--open)';
@@ -774,6 +826,58 @@ function renderSVG(st){
   let s='';
   // barras
   const busLine=(y,nd,lab,sub)=>`<line x1="${X0-20}" y1="${y}" x2="${W-14}" y2="${y}" stroke="${col(nd)}" stroke-width="${st.en.has(nd)?5:4}" stroke-linecap="round"/><text x="${X0-26}" y="${y+5}" text-anchor="end" font-size="15" font-weight="700">${lab}</text>${sub?`<text x="${X0-26}" y="${y+18}" text-anchor="end" font-size="10.5" style="fill:var(--muted)">${sub}</text>`:''}${fc?`<text class="fcv" x="${X0-26}" y="${y+(sub?31:18)}" text-anchor="end" style="fill:${st.en.has(nd)?RED:GRN}">${st.en.has(nd)?'115,6 kV':'0 kV'}</text>`:''}`;
+  if(c.adv){
+    const dsH=(id,x1,x2,y,lab='above')=>{const cl=state.sw[id],k=swc(cl);cen[id]={x:(x1+x2)/2,y};
+      const blade=cl?`<line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" stroke="${k}" stroke-width="3" stroke-linecap="round"/>`:`<line x1="${x1}" y1="${y}" x2="${x2-3}" y2="${y-11}" stroke="${k}" stroke-width="3" stroke-linecap="round"/>`;
+      return `<g class="el" data-el="${id}" tabindex="0" role="button" aria-label="${esc(T.byId[id].code)} ${cl?'cerrado':'abierto'}"><rect class="hit" x="${x1-4}" y="${y-16}" width="${x2-x1+8}" height="32" fill="transparent" rx="3"/><line x1="${x2}" y1="${y-5}" x2="${x2}" y2="${y+5}" stroke="${k}" stroke-width="2"/>${blade}<circle cx="${x1}" cy="${y}" r="2.6" fill="${k}"/><text class="code" x="${(x1+x2)/2}" y="${lab==='above'?y-15:y+20}" text-anchor="middle">${esc(T.byId[id].code)}</text></g>`;};
+    /* rama vertical barra → seccionador → interruptor → seccionador → nodo del circuito (y = 226) */
+    const leg=(x,yTop,bus,ids,nd,lab,gap)=>L(x,yTop,x,104,bus,gap)+dot(x,yTop,bus)+ds(ids[0],x,104,126,lab)+L(x,126,x,153,nd[0])+cbk(ids[1],x,162,lab)+L(x,171,x,186,nd[1])+ds(ids[2],x,186,208,lab)+L(x,208,x,226,nd[2]);
+    /* tramo horizontal nodo → seccionador → interruptor → seccionador → nodo */
+    const span=(xa,xb,y,k,ids,nd)=>{const xm=(xa+xb)/2,d=xb>xa?1:-1,h=(a,b,id)=>dsH(id,Math.min(a,b),Math.max(a,b),y);
+      return L(xa,y,xa+d*30,y,nd[0])+h(xa+d*30,xa+d*52,ids[0])+L(xa+d*52,y,xm-d*9,y,nd[1])+cbk(ids[1],xm,y,'below')+L(xm+d*9,y,xb-d*52,y,nd[2])+h(xb-d*52,xb-d*30,ids[2])+L(xb-d*30,y,xb,y,nd[3]);};
+    /* parte baja de cada circuito: igual a la de las otras configuraciones, desplazada ADY */
+    const circ=(id,cx)=>{const b=bayOf(id),x=id+'.x',j=id+'.j';let bg='';
+      bg+=L(cx,184,cx,222,j)+dot(cx,184,j)+ctSym(cx,202)+ds(id+':SL',cx,222,244)+L(cx,244,cx,430,x);
+      bg+=L(cx,386,cx-26,386,x)+dot(cx,386,x)+arr(cx-26,386);
+      bg+=L(cx,266,cx+24,266,x)+ds(id+':ET',cx+24,266,288)+gnd(cx+24,292);
+      bg+=L(cx,302,cx-22,302,x)+`<circle cx="${cx-22}" cy="${308}" r="5" fill="none" stroke="var(--muted)" stroke-width="1.3"/><circle cx="${cx-22}" cy="${316}" r="5" fill="none" stroke="var(--muted)" stroke-width="1.3"/>`;
+    if(b.tipo==='linea'){
+      if(b.data.wt?.on) bg+=`<rect x="${cx-7}" y="404" width="14" height="20" rx="2" fill="var(--panel)" stroke="var(--ink)" stroke-width="1.4"/><path d="M${cx} 406 q6 2.5 0 5 q-6 2.5 0 5 q6 2.5 0 5" fill="none" stroke="var(--ink)" stroke-width="1.2"/><text class="code" x="${cx+11}" y="418">TO</text>`;
+      bg+=`<path d="M${cx-7} ${430} L${cx} ${444} L${cx+7} ${430}" fill="none" stroke="${col(x)}" stroke-width="2"/>`;
+      bg+=`<text x="${cx}" y="${466}" text-anchor="middle" font-size="14" font-weight="700">${esc(id)}</text><text x="${cx}" y="${482}" text-anchor="middle" font-size="12" fill="var(--muted)" style="fill:var(--muted)">${esc(b.data.ln.destino)}</text>`;
+    } else {
+      if(b.gen){const h=id+'.h',hb=id+'.hb',C='C:'+id,yC=560;
+        bg+=`<circle cx="${cx}" cy="${441}" r="11" fill="none" stroke="${col(x)}" stroke-width="2"/><circle cx="${cx}" cy="${456}" r="11" fill="none" stroke="${col(h)}" stroke-width="2"/>`;
+        bg+=`<rect x="${cx-BW/2+8}" y="470" width="${BW-16}" height="${yC-470+22}" rx="6" fill="var(--warn)" fill-opacity=".06" stroke="var(--warn)" stroke-opacity=".6" stroke-dasharray="5 4"/><text x="${cx-BW/2+14}" y="${yC+16}" font-size="10" style="fill:var(--warn)">Central ${fmt(b.data.tr.v2)} kV · fuera del alcance</text>`;
+        bg+=L(cx,467,cx,484,h)+L(cx,476,cx+28,476,h)+dot(cx,476,h)+ds(id+':HE',cx+28,476,498)+gnd(cx+28,502);
+        bg+=ds(id+':HS',cx,484,506,'left')+L(cx,506,cx,518,hb)+cbk(id+':HC',cx,527,'left')+L(cx,536,cx,yC,C)+dot(cx,yC,C)+`<line x1="${cx-34}" y1="${yC}" x2="${cx+34}" y2="${yC}" stroke="${col(C)}" stroke-width="4" stroke-linecap="round"/>`;
+        bg+=`<text x="${cx+18}" y="${446}" font-size="14" font-weight="700">${esc(id)}</text><text x="${cx}" y="${yC+36}" text-anchor="middle" font-size="12" style="fill:var(--muted)">${fmt(b.data.tr.s)} MVA · ${trV(b.data.tr)} kV</text>`;
+      } else {
+      bg+=`<circle cx="${cx}" cy="${441}" r="11" fill="none" stroke="${col(x)}" stroke-width="2"/><circle cx="${cx}" cy="${456}" r="11" fill="none" stroke="var(--dead)" stroke-width="2"/>`;
+      bg+=`<text x="${cx+18}" y="${446}" font-size="14" font-weight="700">${esc(id)}</text><text x="${cx}" y="${482}" text-anchor="middle" font-size="12" style="fill:var(--muted)">${fmt(b.data.tr.s)} MVA</text><text x="${cx}" y="${496}" text-anchor="middle" font-size="12" style="fill:var(--muted)">${trV(b.data.tr)} kV</text>`;}
+    }
+      if(M&&M[id]&&M[id].on) bg+=vals(cx,b.gen?620:515,M[id]);
+      [':SL',':ET',':HE',':HS',':HC'].forEach(r=>{if(cen[id+r])cen[id+r].y+=ADY;});
+      return `<g transform="translate(0,${ADY})">${bg}</g>`;};
+    const X=i=>X0+i*BW+BW/2, ord=T.order, nO=ord.length;let bg='';
+    T.all.forEach((id,i)=>{const cx=X(i);
+      if(T.res.includes(id)){bg+=`<rect x="${cx-BW/2+18}" y="${184+ADY}" width="${BW-36}" height="250" rx="6" fill="none" stroke="var(--muted)" stroke-opacity=".6" stroke-dasharray="5 4"/><text x="${cx}" y="${300+ADY}" text-anchor="middle" font-size="13" font-weight="600" style="fill:var(--muted)">${id}</text><text x="${cx}" y="${318+ADY}" text-anchor="middle" font-size="12" style="fill:var(--muted)">Reserva (futura)</text>`;return;}
+      bg+=circ(id,cx);});
+    if(c.adv==='di') ord.forEach((p,i)=>{const cx=X(i),x1=cx-27,x2=cx+27;
+      bg+=leg(x1,yB1,'B1',[p+':S1',p+':CB',p+':D1'],[p+'.a',p+'.b',p+'.j'],'left',yB2)+leg(x2,yB2,'B2',[p+':S2',p+':CB2',p+':D2'],[p+'.c',p+'.d',p+'.j'],'right')+L(x1,226,x2,226,p+'.j');});
+    if(c.adv==='iym') for(let i=0,d=1;i<nO;i+=2,d++){const p=ord[i],q=ord[i+1],k='D'+d,xa=X(i),xb=q?X(i+1):xa+46,last=q||p;
+      bg+=leg(xa,yB1,'B1',[k+':SA',k+':CBA',k+':SA2'],[k+'.a',k+'.b',p+'.j'],'left',yB2);
+      bg+=leg(xb,yB2,'B2',[k+':SB',k+':CBB',k+':SB2'],[k+'.f',k+'.e',last+'.j'],'right');
+      bg+=q?span(xa,xb,226,k,[k+':SM1',k+':CBM',k+':SM2'],[p+'.j',k+'.c',k+'.d',q+'.j']):L(xa,226,xb,226,p+'.j');
+      bg+=`<text x="${(xa+xb)/2}" y="${q?150:144}" text-anchor="middle" font-size="12" font-weight="700" style="fill:var(--accent)">${q?'Diámetro '+k:k}</text>`;}
+    if(c.adv==='an'&&nO>1){const yN=150,yT=64;
+      for(let i=0;i<nO-1;i++){const k='A'+(i+1),p=ord[i],q=ord[i+1];bg+=span(X(i),X(i+1),yN,k,[k+':S1',k+':CB',k+':S2'],[p+'.j',k+'.a',k+'.b',q+'.j']);}
+      const k='A'+nO,p=ord[nO-1],q=ord[0],xa=X(nO-1),xb=X(0),xm=(xa+xb)/2,w=Math.min(70,(xa-xb)/2-12);
+      bg+=L(xa,yN,xa,yT,p+'.j')+L(xa,yT,xm+w,yT,p+'.j')+dsH(k+':S1',xm+w-22,xm+w,yT)+L(xm+w-22,yT,xm+9,yT,k+'.a')+cbk(k+':CB',xm,yT,'below')+L(xm-9,yT,xm-w+22,yT,k+'.b')+dsH(k+':S2',xm-w,xm-w+22,yT)+L(xm-w,yT,xb,yT,q+'.j')+L(xb,yT,xb,yN,q+'.j');
+      bg+=`<text x="${xm}" y="${yT+48}" text-anchor="middle" font-size="12" font-weight="700" style="fill:var(--accent)">ANILLO</text>`;}
+    if(c.adv!=='an'){s+=busLine(yB1,'B1','B1','')+busLine(yB2,'B2','B2','')+vtB(W-56,yB1,-1,'B1','TP B1')+vtB(W-56,yB2,1,'B2','TP B2');}
+    s+=bg;
+  } else {
   let bg='';
   T.all.forEach((id,i)=>{
     const cx=X0+i*BW+BW/2;
@@ -839,6 +943,7 @@ function renderSVG(st){
   s+=vtB(W-56,yB1,-1,'B1',c.b2?'TP B1':'TP BP'); if(c.b2) s+=vtB(W-56,yB2,1,'B2','TP B2');
   // dibujar barras primero y luego bahías encima, salvo los cruces que necesitan "salto"
   s=s+bg+fl.join('');
+  }
   // resaltes
   const nx=proc&&proc.steps[proc.i]&&!proc.steps[proc.i].manual?proc.steps[proc.i].id:null;
   if(nx&&cen[nx]) s+=`<circle class="pulse" cx="${cen[nx].x}" cy="${cen[nx].y}" r="20" fill="none" stroke="var(--accent)" stroke-width="2.5" pointer-events="none"/>`;
@@ -850,7 +955,7 @@ function renderSVG(st){
         <text x="${p.x+26}" y="${p.y-14}" font-size="13" font-weight="700" style="fill:#c62828">ARCO</text></g>`;}
     else s+=`<g pointer-events="none"><circle cx="${p.x}" cy="${p.y}" r="18" fill="none" stroke="var(--warn)" stroke-width="3" stroke-dasharray="4 3"/><text x="${p.x+22}" y="${p.y-12}" font-size="13" font-weight="700" style="fill:var(--warn)">¡RIESGO!</text></g>`;
     acc.trips.forEach(id=>{const q=cen[id];if(q) s+=`<g pointer-events="none"><rect x="${q.x-15}" y="${q.y-15}" width="30" height="30" rx="4" fill="none" stroke="#c62828" stroke-width="2.5"/><text x="${q.x}" y="${q.y-19}" text-anchor="middle" font-size="11" font-weight="700" style="fill:#c62828">DISPARO</text></g>`;});}
-  const svg=$('#sld'); svg.setAttribute('viewBox',`0 0 ${W} ${H}`); svg.setAttribute('width',W); svg.style.maxWidth=W*1.25+'px'; svg.innerHTML=s;
+  const svg=$('#sld'); svg.setAttribute('viewBox',`0 0 ${W} ${H+ADY}`); svg.setAttribute('width',W); svg.style.maxWidth=W*1.25+'px'; svg.innerHTML=s;
 }
 
 /* ---------- Columna lateral ---------- */
@@ -860,7 +965,7 @@ function renderSide(st){
   const sc=$('#selCard');
   if(!selected||!T.byId[selected]){sc.innerHTML=`<h2>Equipo seleccionado</h2><p class="hint" style="margin:0">Toque un equipo en el unifilar o en el patio 3D. Pase a <b>Inspeccionar</b> para ver datos sin maniobrar.</p>`;}
   else{
-    const el=T.byId[selected], cl=sw[selected], d=dataOf(el.bay), r=canOperate(el);
+    const el=T.byId[selected], cl=sw[selected], d=dataOf(el.bay)||ADVD, r=canOperate(el);
     let kv='';
     if(el.kind==='cb'&&d.cb) kv=`<dt>Tipo</dt><dd>${esc(d.cb.tipo)}</dd><dt>Asignada</dt><dd>${fmt(d.cb.un)} kV · ${fmt(d.cb.in,0)} A</dd><dt>Poder de corte</dt><dd>${fmt(d.cb.icc)} kA</dd><dt>Mecanismo</dt><dd>${esc(d.cb.mando)}</dd>`;
     else if(d.ds) kv=`<dt>Tipo</dt><dd>${esc(el.kind==='es'?'Cuchilla de tierra':(el.role==='SL'?d.ds.tipoL:d.ds.tipoB))}</dd><dt>Asignada</dt><dd>${fmt(d.ds.un)} kV · ${fmt(d.ds.in,0)} A</dd><dt>Corta duración</dt><dd>${fmt(d.ds.ik)} kA, 1 s</dd><dt>Accionamiento</dt><dd>${esc(d.ds.mando)}</dd>`;
@@ -880,7 +985,8 @@ function renderSide(st){
   }
   // barra del acople (siempre visible sobre el unifilar y el 3D)
   {const bar=$('#acBar');
-   if(!T.c.b2) bar.innerHTML=`<b>Acople</b><span class="hint">Esta configuración tiene una sola barra principal y no lleva acople. Para verlo, escoja arriba una configuración de <b>doble barra (principal y reserva)</b>.</span>`;
+   if(T.c.adv) bar.innerHTML=`<b>${esc(CONFIGS[state.config].name)}</b><span class="hint">${ADVTXT[T.c.adv]}</span>`;
+   else if(!T.c.b2) bar.innerHTML=`<b>Acople</b><span class="hint">Esta configuración tiene una sola barra principal y no lleva acople. Para verlo, escoja arriba una configuración de <b>doble barra (principal y reserva)</b>.</span>`;
    else {const eq=comp('B1').has('B2');
      const K=T.comb?'AT':'AC',ids=[K+':S1',K+':CB',T.comb?'AT:SA':'AC:S2'];
      bar.innerHTML=`<b>Acople B1–B2${T.comb?' · bahía de acople-transferencia':''}</b>${ids.map(id=>`<button class="btn sm" type="button" data-acop="${id}"><span style="font-family:var(--f-mono)">${esc(T.byId[id].code)}</span><span class="chip ${sw[id]?'closed':'open'}">${sw[id]?'Cerrado':'Abierto'}</span></button>`).join('')}<span class="hint">${eq?'Barras equipotenciales: ya puede pasar circuitos.':`Barras separadas: cierre 52-${K} para energizar la reserva.${T.comb&&state.sw['AT:ST']?' Ahora la bahía está haciendo de transferencia.':''}`}</span>`;
@@ -908,7 +1014,8 @@ function renderSide(st){
   }
   // estado de bahías
   const rows=state.bays.map(b=>{const x=b.id+'.x'; let feed=[];
-    if(sw[b.id+':CB']&&sw[b.id+':SL']){ if(sw[b.id+':S1']&&st.en.has('B1')) feed.push(T.c.b2?'B1':'BP'); if(sw[b.id+':S2']&&st.en.has('B2')) feed.push('B2'); }
+    if(T.c.adv){const nb=sw[b.id+':SL']?(T.near[b.id]||[]).filter(k=>sw[k]).map(k=>T.byId[k].code):[];if(nb.length&&st.en.has(b.id+'.j'))feed.push(nb.join(' + '));}
+    else if(sw[b.id+':CB']&&sw[b.id+':SL']){ if(sw[b.id+':S1']&&st.en.has('B1')) feed.push(T.c.b2?'B1':'BP'); if(sw[b.id+':S2']&&st.en.has('B2')) feed.push('B2'); }
     if(sw[b.id+':ST']&&st.en.has('BT')) feed.push('BT (52-AT)');
     let chip;
     if(st.ea.has(x)) chip=`<span class="chip earth">Aterrizada</span>`;
@@ -918,7 +1025,7 @@ function renderSide(st){
     const pt=(state.prot||{})[b.id]==='AT';
     return `<tr><td class="c">${esc(b.id)}</td><td>${b.tipo==='linea'?'Línea':b.gen?'Autotransformador':'Transformador'}<div class="hint">${esc(via)}${pt?' · <b>protección en 52-AT</b>':''}</div></td><td style="text-align:right">${chip}</td></tr>`;});
   const busRow=(n,l)=>`<tr><td class="c">${n}</td><td>${l}</td><td style="text-align:right">${st.en.has(n)?'<span class="chip en">Energizada</span>':'<span class="chip dead">Sin tensión</span>'}</td></tr>`;
-  $('#stTable').innerHTML=busRow('B1',T.c.b2?'Barra principal':'Barra principal')+(T.c.b2?busRow('B2','Barra de reserva'):'')+(T.c.bt?busRow('BT','Barra de transferencia'):'')+rows.join('');
+  $('#stTable').innerHTML=(T.c.adv==='an'?'':busRow('B1',T.c.adv?'Barra 1':'Barra principal'))+(T.c.b2?busRow('B2','Barra de reserva'):T.c.adv&&T.c.adv!=='an'?busRow('B2','Barra 2'):'')+(T.c.bt?busRow('BT','Barra de transferencia'):'')+rows.join('');
   $('#log').innerHTML=logs.length?logs.map(l=>`<li><time>${l.t}</time><span class="${l.cls}">${esc(l.text)}</span></li>`).join(''):`<li><span class="info">Sin maniobras todavía.</span></li>`;
 }
 
@@ -975,10 +1082,10 @@ function fieldHTML(path,[k,label,type,extra],obj){
 function trV(t){const v=[t.v1,t.v2,t.v3].filter(x=>x!==''&&x!=null).sort((a,b)=>b-a);return v.map(x=>fmt(x)).join('/');}
 function gxCount(){const n=T.all.length;let k=0;for(let i=0;i<=n;i++) if(i%2===0||i===n) k++;return k;}
 function inventory(){const c=T.c,nb=state.bays.length,lines=state.bays.filter(b=>b.tipo==='linea'),cnt=k=>T.els.filter(e=>e.kind===k).length;
-  const buses=1+(c.b2?1:0), strings=gxCount()*3*(buses+(c.bt?1:0))+lines.length*3, ni=insCalc().n, g=gridCalc();
+  const buses=c.adv?(c.adv==='an'?0:2):1+(c.b2?1:0), strings=gxCount()*3*(buses+(c.bt?1:0))+lines.length*3, ni=insCalc().n, g=gridCalc();
   const wt=lines.filter(b=>b.data.wt?.on).reduce((a,b)=>a+(b.data.wt.fases.startsWith('3')?3:b.data.wt.fases.startsWith('1')?1:2),0);
-  return [['Interruptores de potencia (52)',cnt('cb'),'tripolares, uno por bahía'],['Seccionadores (89)',cnt('ds'),'tripolares'],['Cuchillas de puesta a tierra (57)',cnt('es'),'tripolares'],
-   ['Transformadores de corriente (TC)',3*(nb+(c.b2?1:0)+(c.bt?1:0)),'monofásicos'],['Transformadores de tensión de bahía',3*nb,'monofásicos'],['Transformadores de tensión de barra',3*buses,`monofásicos, ${state.busvt.tipo.toLowerCase()}s`],
+  return [['Interruptores de potencia (52)',cnt('cb'),c.adv?'tripolares':'tripolares, uno por bahía'],['Seccionadores (89)',cnt('ds'),'tripolares'],['Cuchillas de puesta a tierra (57)',cnt('es'),'tripolares'],
+   ['Transformadores de corriente (TC)',3*(c.adv?T.els.filter(e=>e.kind==='cb'&&!/^H/.test(e.role)).length:nb+(c.b2?1:0)+(c.bt?1:0)),'monofásicos'],['Transformadores de tensión de bahía',3*nb,'monofásicos'],['Transformadores de tensión de barra',3*buses,`monofásicos, ${state.busvt.tipo.toLowerCase()}s`],
    ['Pararrayos / DPS',3*nb,'monofásicos, en la llegada de cada línea y transformador'],['Trampas de onda',wt,'monofásicas, solo líneas con PLC'],['Transformadores de potencia',nb-lines.length,''],
    ['Cadenas de aisladores de suspensión',strings,isPol()?`${strings*ni} aisladores poliméricos Siemens ${P3FL.ref} (${ni} por cadena, ${fmt(state.ins.esp,0)} mm)`:`${strings*ni} discos (${ni} por cadena)`],['Conductor de la malla de tierra',g.err?'—':`${fmt(g.LC,0)} m`,g.err?'':`${g.size[0]}, más ${g.nr} varillas`]];}
 function renderData(){renderBlist();renderForm();}
@@ -1034,6 +1141,11 @@ let three=null, dirty3D=true;
 const PH=[-2.11,0,2.11], Z={B1:0,B2:9,AC:4.5,CB:12.5,CT:15,SL1:17.5,SL2:19,TP:21,BT:26,EXIT:31.5}, YT=4.3, YB=7.5, HS=2.5;
 /* Grupo 2: fases a 2,11 m en barras y derivaciones; semiancho de pórtico 4,4 m = 2,11 + 1,95 (fase–estructura flexible) + 0,3 de columna */
 const KB=()=>1, GW=()=>4.4;
+const Z0={...Z};
+/* anillo, interruptor y medio y doble interruptor necesitan más fondo: la salida de los circuitos se corre hacia atrás */
+function setZ(c){Object.assign(Z,Z0);const sh=c.adv?(c.adv==='di'?10.5:26.5):0;if(sh)['CT','SL1','SL2','TP','BT','EXIT'].forEach(k=>Z[k]+=sh);}
+const twoBus=c=>c.b2||(c.adv&&c.adv!=='an');
+const advZc=(p,i)=>((T.c.adv!=='di'&&T.order.indexOf(p)%2===1)?36:20)+i*1.5;
 /* valores de diseño de los Grupos 1 y 2 (capa de cotas 3D); los adoptados se redondean hacia arriba */
 const DES={dft:1.10,vb:1.21,dff:1.30,dflex:2.11,dfs:1.95,pc:3.46,p:3.50,dh:3.00,dv:2.50,hs:3.60,hb:6.54,ham:7.50,fl:.66,hl:6.00,veh:4.0,T:1.91,hvc:5.91,hv:6.00,R:4.0,R230:4.7,hc:2.5,bil:550,pf:230,dps:'Siemens 3EL2 096-2PJ3',upl:226,ldps:28.6,wmin:8.12};
 const GC={};
@@ -1167,8 +1279,8 @@ function trapEl(X,y,z,inf){const M=three.M,g=new THREE.Group();g.userData.info=i
   box3(1.1,.06,.08,M.alu,X,y+.58,z,g);box3(1.1,.06,.08,M.alu,X,y-.58,z,g);}
 function busTP(x,zb,node,tipo,inf){const g=new THREE.Group();g.userData.info=inf;three.root.add(g);PH.forEach(d=>{const zp=zb+d*KB();tpOne(g,x,zp,tipo);wire([V(x,YB,zp),V(x,YT,zp)],node,.04);});}
 function shield(xs,z,h){xs.forEach(x=>latMesh(latCol(3.4,.55,.14),x,h+.3,z));for(let i=0;i<xs.length-1;i++) sagWire(V(xs[i],h+3.7,z),V(xs[i+1],h+3.7,z),.35,.03,three.M.gw);}
-function slEl(id,x){const g=elGroup(id),M=three.M,bl=[];
-  PH.forEach(d=>{const X=x+d;[Z.SL1,Z.SL2].forEach((zz,j)=>{support(g,X,zz);insul(g,X,HS,YT-HS-.12,zz);
+function slEl(id,x,z1=Z.SL1,z2=Z.SL2){const g=elGroup(id),M=three.M,bl=[];
+  PH.forEach(d=>{const X=x+d;[z1,z2].forEach((zz,j)=>{support(g,X,zz);insul(g,X,HS,YT-HS-.12,zz);
       const p=new THREE.Group();p.position.set(X,YT,zz);g.add(p);box3(.07,.07,.76,M.alu,0,0,j?-.38:.38,p);bl.push([p,j]);});});
   anim(id,v=>bl.forEach(([p,j])=>p.rotation.y=(j?-1:1)*(1-v)*Math.PI/2));}
 function esEl(id,x){const g=elGroup(id),M=three.M,arms=[],L=YT-HS-.15;
@@ -1288,9 +1400,41 @@ function central230(tx,tz,top,p){const M=three.M,z1=tz+9,z2=tz+10.5,zc=tz+15.5,z
   PH.forEach((d,k)=>{const X=tx+d;wire([V(tx+d*1.6,top-5.6-strLen(),tz),V(X,YT+2,z1-1.5),V(X,YT,z1)],p+'.h',.04);
     wire([V(X,YT,z2),V(X,YT,zc-.68)],p+'.hb',.04);wire([V(X,YT,zc+.68),V(X,YT+1.5,zc+2.5),V(X,YB,zb+(k-1)*2.2)],'C:'+p,.04);});
   sprite(`Central ${fmt(bayOf(p).data.tr.v2)} kV · fuera del alcance`,tx,YB+3,zb,.8);}
-function layoutX(){const w=T.all.map(id=>{const b=bayOf(id);return (b&&b.gen)||(id==='AT'&&T.comb)?20:11;}),tot=w.reduce((a,b)=>a+b,0);let acc=-tot/2;const bnd=[acc],xs=[];w.forEach(v=>{xs.push(acc+v/2);acc+=v;bnd.push(acc);});
+function layoutX(){const w=T.all.map(id=>{const b=bayOf(id);return (b&&(b.gen||T.c.adv))||(id==='AT'&&T.comb)?20:11;}),tot=w.reduce((a,b)=>a+b,0);let acc=-tot/2;const bnd=[acc],xs=[];w.forEach(v=>{xs.push(acc+v/2);acc+=v;bnd.push(acc);});
   const gx=[bnd[0]];for(let i=1;i<bnd.length;i++){const last=gx[gx.length-1];if(i===bnd.length-1||bnd[i+1]-last>22.5) gx.push(bnd[i]);}
-  return {xs,w,bnd,gx,xmin:bnd[0]-1.5,xmax:bnd[bnd.length-1]+1.5};}
+  const pad=T.c.adv?3:1.5;return {xs,w,bnd,gx,xmin:bnd[0]-pad,xmax:bnd[bnd.length-1]+pad};}
+/* Patio 3D de anillo, interruptor y medio y doble interruptor.
+   Cada rama es un carril a lo largo del patio (pantógrafo o seccionador, interruptor, seccionador) y los nodos de los circuitos
+   son travesaños elevados 1,6 m que unen los carriles con la salida del circuito. */
+function adv3D(xOf){
+  const c=T.c,ord=T.order,n=ord.length,ZP=20,ZQ=36,yj=YT+1.6,OFF=6.33;
+  const post=(g,x,z)=>{support(g,x,z);insul(g,x,HS,yj-HS-.1,z);};
+  const cross=(p,xa,xb)=>{const x=xOf(p),nd=p+'.j',g=new THREE.Group();g.userData.info=`Nodo de ${p} · travesaño elevado que une ${c.adv==='di'?'sus dos interruptores':'los interruptores vecinos'} con la salida del circuito`;three.root.add(g);
+    PH.forEach((d,i)=>{const z=advZc(p,i);wire([V(xa+d,yj,z),V(xb+d,yj,z)],nd);wire([V(x+d,yj,z),V(x+d,YT,z)],nd);post(g,(xa+x)/2+d,z);post(g,(xb+x)/2+d,z);});};
+  /* barra → pantógrafo → interruptor → seccionador → travesaño del circuito p */
+  const busLane=(x,zb,ids,nd,p)=>{
+    PH.forEach((d,i)=>{const X=x+d,z=advZc(p,i);wire([V(X,YT,zb+d*KB()),V(X,YT,Z.CB-.7)],nd[0]);wire([V(X,YT,Z.CB+.7),V(X,YT,15.5)],nd[1]);wire([V(X,YT,17),V(X,YT,z),V(X,yj,z)],p+'.j');});
+    pantoEl(ids[0],x,zb);breakerEl(ids[1],x,Z.CB);slEl(ids[2],x,15.5,17);};
+  /* travesaño cercano → seccionador → interruptor → seccionador → travesaño lejano */
+  const midLane=(x,ids,nd)=>{
+    PH.forEach((d,i)=>{const X=x+d,z1=ZP+i*1.5,z2=ZQ+i*1.5;wire([V(X,yj,z1),V(X,YT,z1),V(X,YT,25.5)],nd[0]);wire([V(X,YT,27),V(X,YT,29.3)],nd[1]);wire([V(X,YT,30.7),V(X,YT,33)],nd[2]);wire([V(X,YT,34.5),V(X,YT,z2),V(X,yj,z2)],nd[3]);});
+    slEl(ids[0],x,25.5,27);breakerEl(ids[1],x,30);slEl(ids[2],x,33,34.5);};
+  if(c.adv==='di') ord.forEach(p=>{const x=xOf(p);cross(p,x-OFF,x+OFF);
+    busLane(x-OFF,Z.B1,[p+':S1',p+':CB',p+':D1'],[p+'.a',p+'.b'],p);busLane(x+OFF,Z.B2,[p+':S2',p+':CB2',p+':D2'],[p+'.c',p+'.d'],p);});
+  if(c.adv==='iym') for(let i=0,d=1;i<n;i+=2,d++){const p=ord[i],q=ord[i+1],k='D'+d,xp=xOf(p),last=q||p,xl=xOf(last);
+    busLane(xp-OFF,Z.B1,[k+':SA',k+':CBA',k+':SA2'],[k+'.a',k+'.b'],p);
+    busLane(xl+OFF,Z.B2,[k+':SB',k+':CBB',k+':SB2'],[k+'.f',k+'.e'],last);
+    if(q){const xm=(xp+xl)/2;cross(p,xp-OFF,xm);cross(q,xm,xl+OFF);midLane(xm,[k+':SM1',k+':CBM',k+':SM2'],[p+'.j',k+'.c',k+'.d',q+'.j']);sprite(`Diámetro ${k} · interruptor central`,xm,YT+4.4,30,.9);}
+    else {cross(p,xp-OFF,xp+OFF);sprite(`Diámetro ${k}`,xp,YT+4.4,Z.CB+4,.9);}}
+  if(c.adv==='an'&&n>1){const lastJ=ord[n-1]+'.j';
+    ord.forEach((p,i)=>{const x=xOf(p),xa=i===0?x-OFF:(xOf(ord[i-1])+x)/2,xb=i===n-1?x+OFF:(x+xOf(ord[i+1]))/2;cross(p,xa,xb);
+      if(i<n-1){const q=ord[i+1],k='A'+(i+1);
+        if(i%2===0) midLane(xb,[k+':S1',k+':CB',k+':S2'],[p+'.j',k+'.a',k+'.b',q+'.j']); else midLane(xb,[k+':S2',k+':CB',k+':S1'],[q+'.j',k+'.b',k+'.a',p+'.j']);
+        sprite(`52-${k}`,xb,YT+3.2,30,.7);}});
+    const k='A'+n,x0=xOf(ord[0])-OFF,xr=xOf(ord[n-1])+OFF,pl=ord[n-1];
+    busLane(x0,Z.B1,[k+':S1',k+':CB',k+':S2'],[k+'.a',k+'.b'],ord[0]);sprite(`52-${k} · cierre del anillo`,x0,YT+3.2,Z.CB,.7);
+    PH.forEach((d,i)=>{const X=xr+d,z=advZc(pl,i);wire([V(X,yj,z),V(X,YT,z),V(X,YT,Z.B1+d*KB()),V(X,YB,Z.B1+d*KB())],lastJ);});}
+}
 function build3D(){
   if(!three) return; dirty3D=false;
   if(three.root){three.scene.remove(three.root); Object.values(three.nodeMats).forEach(m=>m.dispose());}
@@ -1304,7 +1448,7 @@ function build3D(){
   M.gravel.map.repeat.set((fx1-fx0)/2.5,(fz1-fz0)/2.5);
   {const rd=box3(1,1,1,M.asph,(fx0+fx1)/2,.02,-7.5,root);rd.scale.set(fx1-fx0,.04,4);rd.receiveShadow=true;rd.userData.noShadow=true;
    const rd2=box3(1,1,1,M.asph,fx0+6,.02,(fz0-7.5)/2-1,root);rd2.scale.set(4,.04,-7.5-fz0+2);rd2.userData.noShadow=true;
-   const tr=box3(1,1,1,M.conc,(xmin+xmax)/2,.06,16.25,root);tr.scale.set(xmax-xmin,.12,.9);tr.userData.noShadow=true;}
+   const tr=box3(1,1,1,M.conc,(xmin+xmax)/2,.06,Z.CT+1.25,root);tr.scale.set(xmax-xmin,.12,.9);tr.userData.noShadow=true;}
   // cerramiento
   {const H=2.6,pm=M.galv,fm=M.fence;const side=(a,b)=>{const L=a.distanceTo(b),n=Math.ceil(L/3);for(let i=0;i<=n;i++){const q=a.clone().lerp(b,i/n);cyl(.05,.05,H,pm,q.x,H/2,q.z,root,6);}
       const pl=new THREE.Mesh(new THREE.PlaneGeometry(L,H-.2),fm.clone());pl.material.map=fm.map.clone();pl.material.map.repeat.set(L/0.6,(H-.2)/0.6);pl.material.map.needsUpdate=true;
@@ -1319,16 +1463,16 @@ function build3D(){
   // fence
   const fz=[-6,Z.EXIT+8.5];
   // barras y pórticos
-  const buses=[['B1',Z.B1]]; if(c.b2) buses.push(['B2',Z.B2]); if(c.bt) buses.push(['BT',Z.BT]);
+  const buses=c.adv==='an'?[[T.order[T.order.length-1]+'.j',Z.B1]]:[['B1',Z.B1]]; if(twoBus(c)) buses.push(['B2',Z.B2]); if(c.bt) buses.push(['BT',Z.BT]);
   const TPX=[[0,.115],[-.2,-.23],[.2,-.23]];/* triplex: haz triangular, separación 0,40 m entre subconductores (supuesto visual) */
-  for(const [b,zb] of buses){PH.forEach(d=>{TPX.forEach(([dz,dy])=>wire([V(xmin,YB+dy,zb+d*KB()+dz),V(xmax,YB+dy,zb+d*KB()+dz)],b,.045));for(let xs=xmin+3;xs<xmax;xs+=6){const zc=zb+d*KB();rod(V(xs,YB+.115,zc),V(xs,YB-.23,zc-.2),.018,M.galv,root);rod(V(xs,YB+.115,zc),V(xs,YB-.23,zc+.2),.018,M.galv,root);rod(V(xs,YB-.23,zc-.2),V(xs,YB-.23,zc+.2),.018,M.galv,root);}}); sprite(b==='B1'?(c.b2?'B1 · Principal':'BP · Principal'):b==='B2'?'B2 · Reserva':'BT · Transferencia',xmin-2.4,YB+1.6,zb,1.1);sprite('Triplex 3 × Drake 795 por fase',xmin-2.4,YB+.9,zb,.6);}
-  const gzM=c.b2?[Z.B1-GW(),(Z.B1+Z.B2)/2,Z.B2+GW()]:[Z.B1-GW(),Z.B1+GW()];
+  for(const [b,zb] of buses){PH.forEach(d=>{TPX.forEach(([dz,dy])=>wire([V(xmin,YB+dy,zb+d*KB()+dz),V(xmax,YB+dy,zb+d*KB()+dz)],b,.045));for(let xs=xmin+3;xs<xmax;xs+=6){const zc=zb+d*KB();rod(V(xs,YB+.115,zc),V(xs,YB-.23,zc-.2),.018,M.galv,root);rod(V(xs,YB+.115,zc),V(xs,YB-.23,zc+.2),.018,M.galv,root);rod(V(xs,YB-.23,zc-.2),V(xs,YB-.23,zc+.2),.018,M.galv,root);}}); sprite(c.adv?(c.adv==='an'?'Barra de retorno del anillo':b==='B1'?'B1 · Barra 1':'B2 · Barra 2'):b==='B1'?(c.b2?'B1 · Principal':'BP · Principal'):b==='B2'?'B2 · Reserva':'BT · Transferencia',xmin-2.4,YB+1.6,zb,1.1);sprite('Triplex 3 × Drake 795 por fase',xmin-2.4,YB+.9,zb,.6);}
+  const gzM=twoBus(c)?[Z.B1-GW(),(Z.B1+Z.B2)/2,Z.B2+GW()]:[Z.B1-GW(),Z.B1+GW()];
   const gx=LX.gx;
   const SL=strLen();
   gx.forEach(x=>{gantry(x,gzM,YB+SL,M);buses.forEach(([b,zb])=>{if(b!=='BT') PH.forEach(d=>discString(root,x,YB+SL,zb+d*KB()));});
     if(c.bt){gantry(x,[Z.BT-GW(),Z.BT+GW()],YB+SL,M);PH.forEach(d=>discString(root,x,YB+SL,Z.BT+d*KB()));}});
   {const gs=gx.length>1?gx:[gx[0]-BW,gx[0]];gzM.forEach(z=>shield(gs,z,YB+SL));if(c.bt){shield(gs,Z.BT-GW(),YB+SL);shield(gs,Z.BT+GW(),YB+SL);}}
-  buses.forEach(([b,zb])=>{if(b!=='BT') busTP(xmax-.9,zb,b,state.busvt.tipo,`TP (VT) de barra ${b==='B1'?(c.b2?'principal B1':'principal'):'de reserva B2'} · ${state.busvt.tipo.toLowerCase()} · ${state.busvt.rel} · clase ${state.busvt.clase}`);});
+  buses.forEach(([b,zb])=>{if(b!=='BT'&&c.adv!=='an') busTP(xmax-.9,zb,b,state.busvt.tipo,`TP (VT) de barra ${c.adv?b:b==='B1'?(c.b2?'principal B1':'principal'):'de reserva B2'} · ${state.busvt.tipo.toLowerCase()} · ${state.busvt.rel} · clase ${state.busvt.clase}`);});
   sprite(isPol()?`Aislador polimérico ${P3FL.ref} (${fmt(state.ins.esp/1000,2)} m)`:`Cadena de ${insCalc().n} discos`,gx[1]??gx[0],YB+SL+1.4,Z.B1-3.7,.75);
   // malla de puesta a tierra
   {const g=state.grid,r=gridCalc(),gg=new THREE.Group();three.gridG=gg;root.add(gg);gg.visible=$('#showGrid').checked;
@@ -1353,8 +1497,9 @@ function build3D(){
       pantoEl('AT:S1',xa,Z.B1);if(c.b2) pantoEl('AT:S2',xa,Z.B2);breakerEl('AT:CB',xa,Z.CB);ctEl(xa,Z.CT,`TC (CT) · Transformadores de corriente AT · ${state.special.AT.ct.rel} A · ${state.special.AT.ct.nuc}`);pantoEl('AT:ST',xa,Z.BT);
       if(cm){pantoEl('AT:SA',xb,Z.B2);three.acX=xb;three.acZ=Z.B2+3;sprite('Acople-transferencia',x,13,Z.CT+3,.9);} else sprite('Transferencia',x,13,Z.BT,.9);return;}
     const b=bayOf(id),p=id;
-    PH.forEach(d=>{const X=x+d;wire([V(X,YT,Z.B1+d*KB()),V(X,YT,Z.CB-.7)],p+'.a');wire([V(X,YT,Z.CB+.7),V(X,YT,Z.SL1)],p+'.b');wire([V(X,YT,Z.SL2),V(X,YT,Z.EXIT-3)],p+'.x');});
-    pantoEl(p+':S1',x,Z.B1);if(c.b2) pantoEl(p+':S2',x,Z.B2);breakerEl(p+':CB',x,Z.CB);ctEl(x,Z.CT,`TC (CT) · Transformadores de corriente ${p} · ${b.data.ct.rel} A · ${b.data.ct.nuc}`);slEl(p+':SL',x);esEl(p+':ET',x);
+    if(c.adv) PH.forEach((d,i)=>{const X=x+d;wire([V(X,YT,advZc(p,i)),V(X,YT,Z.SL1)],p+'.j');wire([V(X,YT,Z.SL2),V(X,YT,Z.EXIT-3)],p+'.x');});
+    else {PH.forEach(d=>{const X=x+d;wire([V(X,YT,Z.B1+d*KB()),V(X,YT,Z.CB-.7)],p+'.a');wire([V(X,YT,Z.CB+.7),V(X,YT,Z.SL1)],p+'.b');wire([V(X,YT,Z.SL2),V(X,YT,Z.EXIT-3)],p+'.x');});
+    pantoEl(p+':S1',x,Z.B1);if(c.b2) pantoEl(p+':S2',x,Z.B2);breakerEl(p+':CB',x,Z.CB);}ctEl(x,Z.CT,`TC (CT) · Transformadores de corriente ${p} · ${b.data.ct.rel} A · ${b.data.ct.nuc}`);slEl(p+':SL',x);esEl(p+':ET',x);
     tpEl(x,Z.TP,b.data.vt.tipo,`TP (VT/PT) ${b.data.vt.tipo==='Capacitivo'?'capacitivo':'inductivo'} ${p} · ${b.data.vt.rel} · clase ${b.data.vt.clase}`);
     {const zz=Z.EXIT-2.2,t=.8,inf=`DPS (pararrayos) ${p} · Ur ${fmt(b.data.dps.ur)} kV, Uc ${fmt(b.data.dps.uc)} kV, ${fmt(b.data.dps.inom)} kA · conectado fase–tierra: bajante desde el conductor, anillo de graduación (anticorona), contador de descargas y conexión a la malla`;
      if(b.gen&&/trif/i.test(b.data.tr.fases||'')) dpsEl(x,0,0,p+'.x',inf+' · junto al transformador',PH.map((d,i)=>{const xp=x+(i-1)*3.2;return {X:xp,z:Z.EXIT+.2,to:V(xp,7.8,Z.EXIT+.6)};}));
@@ -1363,6 +1508,7 @@ function build3D(){
     if(c.bt) pantoEl(p+':ST',x,Z.BT);
     if(b.tipo==='linea'){lineExit(x,p);sprite(`${p} · Salida 115 kV → ${b.data.ln.destino}`,x,13.2,Z.EXIT,.9);} else {three.trX.push(x);if(b.gen){bank1f(x,p);sprite(`${p} · ${/trif/i.test(b.data.tr.fases||'')?'Unidad 3φ':'Banco 3×1φ'} ${fmt(b.data.tr.s)} MVA ${trV(b.data.tr)} kV`,x,9.6,Z.EXIT+2,.95);} else {trafo3(x,p);sprite(`${p} · ${fmt(b.data.tr.s)} MVA ${trV(b.data.tr)} kV`,x,8.5,Z.EXIT+4,.9);}}
   });
+  if(c.adv) adv3D(id=>xb(T.all.indexOf(id)));
   {const sg=shdGeom(),P=+state.shd.punta||0;
    if(P>0) sg.rows.forEach(r=>r.xs.forEach(x=>{const g=new THREE.Group();g.userData.info=`Punta Franklin sobre ${r.name.toLowerCase()} · punta a ${fmt(r.h,1)} m del suelo`;root.add(g);
      rod(V(x,r.h-P,r.z),V(x,r.h-.25,r.z),.035,M.galv,g);const tip=new THREE.Mesh(geo('ftip',()=>new THREE.ConeGeometry(.06,.3,8)),M.galv);tip.position.set(x,r.h-.15,r.z);g.add(tip);}));
@@ -1579,7 +1725,7 @@ function renderGrid(){
   $('#gridForm').innerHTML=`<h3>Malla de puesta a tierra</h3>
    <p class="note">La malla se calcula en la herramienta de diseño (módulo Malla de tierra, IEEE Std 80). Aquí se muestran los resultados; active "Malla de tierra" en el Patio 3D para verla.</p>
    <div class="row" style="margin:6px 0 4px">${toolLink('malla','Editar en la herramienta')}</div>
-   <dl class="kv"><dt>Falla monofásica 3I₀</dt><dd>${fmt(m.If,2)} kA</dd><dt>Despeje</dt><dd>${fmt(m.tf,2)} s</dd><dt>Factor Sf</dt><dd>${fmt(o.SfUse,2)}</dd><dt>Suelo ρ</dt><dd>${fmt(m.rho,0)} Ω·m</dd><dt>Grava</dt><dd>${fmt(m.rhos,0)} Ω·m · ${fmt(m.hs,2)} m</dd>
+   <dl class="kv"><dt>Falla monofásica 3I₀</dt><dd>${fmt(m.If,2)} kA</dd><dt>Despeje</dt><dd>${fmt(m.tf,2)} s</dd><dt>Factor Sf</dt><dd>${fmt(r.SfUse,2)}</dd><dt>Suelo ρ</dt><dd>${fmt(m.rho,0)} Ω·m</dd><dt>Grava</dt><dd>${fmt(m.rhos,0)} Ω·m · ${fmt(m.hs,2)} m</dd>
    <dt>Malla</dt><dd>${fmt(m.Lx,0)} × ${fmt(m.Ly,0)} m · D ${fmt(r.Deff,2)} m</dd><dt>Electrodos</dt><dd>${r.nr} de ${fmt(m.LR,1)} m</dd><dt>Conductor</dt><dd>${esc(r.size[0])}</dd></dl>`;
   renderGridRes();
 }
@@ -1599,7 +1745,7 @@ function renderGridRes(){
 /* ---------- Apantallamiento (IEEE Std 998, esfera rodante) ---------- */
 function shdGeom(){
   const c=T.c,n=T.all.length,BW=11,LX=layoutX(),SL=strLen(),hB=YB+SL,P=+state.shd.punta||0;
-  const gzM=c.b2?[Z.B1-GW(),(Z.B1+Z.B2)/2,Z.B2+GW()]:[Z.B1-GW(),Z.B1+GW()];
+  const gzM=twoBus(c)?[Z.B1-GW(),(Z.B1+Z.B2)/2,Z.B2+GW()]:[Z.B1-GW(),Z.B1+GW()];
   const gx=LX.gx;
   const bays=T.all.map((id,i)=>({id,x:LX.xs[i],b:bayOf(id)})).filter(o=>o.b);
   const lines=bays.filter(o=>o.b.tipo==='linea'), banks=bays.filter(o=>o.b.gen);
@@ -1609,7 +1755,7 @@ function shdGeom(){
   if(lines.length) rows.push({z:Z.EXIT,h:9.8+SL+3.35+P,xs:lines.flatMap(o=>[o.x-4.8,o.x+4.8]),sp:9.6,name:'Pórtico de salida de línea',ab:'PL'});
   if(banks.length) rows.push({z:Z.EXIT+11,h:13+3.7+P,xs:banks.flatMap(o=>[o.x-7.5,o.x+7.5]),sp:15,name:'Pórtico de llegada 230 kV',ab:'P230'});
   rows.sort((a,b)=>a.z-b.z);
-  const objs=[], bz=[['B1',Z.B1]]; if(c.b2) bz.push(['B2',Z.B2]); if(c.bt) bz.push(['BT',Z.BT]);
+  const objs=[], bz=[['B1',Z.B1]]; if(twoBus(c)) bz.push(['B2',Z.B2]); if(c.bt) bz.push(['BT',Z.BT]);
   bz.forEach(([nm,z])=>PH.forEach(d=>objs.push({z:z+d*KB(),h:YB+.1,name:'Barra '+nm})));
   objs.push({z:Z.CB,h:5.6,name:'Interruptores'},{z:Z.TP,h:6.3,name:'TP y DPS de bahía'});
   if(lines.length) objs.push({z:Z.EXIT,h:9.8,name:'Conductores de salida de línea'});
@@ -1727,8 +1873,8 @@ new MutationObserver(()=>update3D()).observe(document.documentElement,{attribute
 /* ---------- Arranque ---------- */
 build();
 if(needNormal||!Object.entries(state.sw).some(([k,v])=>v&&!/:H[CSE]$/.test(k))) normalState();
-$('#cfgSel').value=state.config; headerName();
-log(T.c.b2?'Simulador listo. Estado normal: todos los circuitos en la barra principal (B1), barra de reserva (B2) desenergizada y 52-AC abierto.':'Simulador listo. Estado normal: todos los circuitos en la barra principal.','info');
+$('#cfgSel').innerHTML=Object.entries(CONFIGS).map(([k,v])=>`<option value="${k}">${esc(v.name)}</option>`).join('');$('#cfgSel').value=state.config; headerName();
+log(T.c.adv?`Simulador listo. ${CONFIGS[state.config].name}: estado normal con todos los interruptores y seccionadores cerrados.`:T.c.b2?'Simulador listo. Estado normal: todos los circuitos en la barra principal (B1), barra de reserva (B2) desenergizada y 52-AC abierto.':'Simulador listo. Estado normal: todos los circuitos en la barra principal.','info');
 render();
 let t0='sld'; try{t0=localStorage.getItem(KEY+'-tab')||'sld';}catch(e){}
 setTab(['sld','3d','data','ins','grid','shd','ied'].includes(t0)?t0:'sld');

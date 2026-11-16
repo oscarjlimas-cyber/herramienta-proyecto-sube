@@ -10,7 +10,7 @@ Página web para diseñar y estudiar subestaciones de alta tensión. Sirve para 
 2. **Distancias eléctricas** (método del curso, RETIE vigente, IEC 60071-2): distancias mínimas, de seguridad y de diseño, con corte de la bahía a escala.
 3. **Malla de puesta a tierra** (IEEE Std 80-2013): tensiones de toque y de paso, cálculo del factor de reparto Sf con los cables de guarda y tabla de sensibilidad de los supuestos.
 4. **Apantallamiento** (IEEE Std 998): corriente crítica, distancia de descarga y zona protegida por los cables de guarda.
-5. **Configuraciones**: comparación de siete esquemas de barras (barra sencilla, principal + transferencia, doble barra, doble barra + transferencia, anillo, interruptor y medio, doble interruptor).
+5. **Configuraciones**: comparación de siete esquemas de barras (barra sencilla, barraje doble principal y transferencia, doble barra, doble barra + transferencia, anillo, interruptor y medio, doble interruptor).
 6. **Simulador 3D**: maniobras con enclavamientos, unifilar con flujo de carga y patio en 3D (modelado para el caso base).
 
 El módulo de **conductores y barrajes** (IEEE 738, Peek, IEC 60865-1) ya está programado pero oculto: se activa cuando el Grupo 3 haga su entrega (`MOD_CON` en `modulos.js` y su pestaña en `index.html`). La malla y el apantallamiento del caso base son provisionales y se ajustarán con las entregas de los grupos 3 y 4.

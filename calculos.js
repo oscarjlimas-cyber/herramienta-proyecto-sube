@@ -40,13 +40,13 @@ const SIWV_II={300:[[750,[850,950]],[850,[950,1050]]],362:[[850,[950,1050]],[950
 const CLR_SI={750:[1.6,1.9],850:[1.8,2.4],950:[2.2,2.9],1050:[2.6,3.4],1175:[3.1,4.1],1300:[3.6,4.8],1425:[4.2,5.6],1550:[4.9,6.4]};
 /* Configuraciones de barras: interruptores y seccionadores (sin cuchillas de tierra) para n circuitos; extra = bahías de acople/transferencia */
 const CFG={
-  bs:{n:"Barra sencilla",int:n=>n,sec:n=>2*n,extra:0,sim:"bs"},
-  bpt:{n:"Barra principal y transferencia (2 barras)",int:n=>n+1,sec:n=>3*n+2,extra:1,sim:"bpt"},
-  db:{n:"Doble barra",int:n=>n+1,sec:n=>3*n+2,extra:1,sim:"db"},
-  dbt:{n:"Doble barra + transferencia (3 barras)",int:n=>n+2,sec:n=>4*n+4,extra:2,sim:"dbt"},
-  an:{n:"Anillo",int:n=>n,sec:n=>3*n,extra:0,sim:null},
-  iym:{n:"Interruptor y medio",int:n=>Math.ceil(1.5*n),sec:n=>4*n,extra:0,sim:null},
-  di:{n:"Doble barra con doble interruptor",int:n=>2*n,sec:n=>5*n,extra:0,sim:null}
+  bs:{n:"Barra sencilla",int:n=>n,sec:n=>2*n,extra:0,sim:"bs",d3:true},
+  bpt:{n:"Barraje doble principal y transferencia",int:n=>n+1,sec:n=>3*n+2,extra:1,sim:"bpt",d3:true},
+  db:{n:"Doble barra",int:n=>n+1,sec:n=>3*n+2,extra:1,sim:"db",d3:true},
+  dbt:{n:"Doble barra + transferencia",int:n=>n+2,sec:n=>4*n+4,extra:2,sim:"dbt",d3:true},
+  an:{n:"Anillo",int:n=>n,sec:n=>3*n,extra:0,sim:"an",d3:true},
+  iym:{n:"Interruptor y medio",int:n=>Math.ceil(1.5*n),sec:n=>4*n,extra:0,sim:"iym",d3:true},
+  di:{n:"Doble barra con doble interruptor",int:n=>2*n,sec:n=>5*n,extra:0,sim:"di",d3:true}
 };
 /* RETIE Tabla 3.22.1.c: distancias mínimas de seguridad en subestaciones (BIL, d mín IEC, valor básico, circulación de personal, trabajo horizontal, trabajo vertical) */
 const RETIE_C=[[60,0.09,0.10,null,null,null],[75,0.12,0.13,null,null,null],[95,0.16,0.18,null,null,null],[125,0.22,0.24,null,null,null],[170,0.32,0.35,null,null,null],[200,0.38,0.42,null,null,null],[250,0.48,0.53,null,null,null],[325,0.63,0.70,null,null,null],[380,0.75,0.83,3.08,null,null],[450,0.90,1.00,3.25,null,null],[550,1.10,1.21,3.46,2.96,null],[650,1.30,1.43,3.68,3.18,null],[750,1.50,1.65,3.90,3.40,2.90],[850,1.70,1.87,4.12,3.62,3.12],[950,1.90,2.09,4.34,3.84,3.34],[1050,2.10,2.31,4.56,4.06,3.56],[1175,2.35,2.59,4.84,4.34,3.84],[1300,2.60,2.86,5.11,4.61,4.11],[1425,2.85,3.02,5.27,4.77,4.27],[1550,3.10,3.29,5.54,5.04,4.54]];
